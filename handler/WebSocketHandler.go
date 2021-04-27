@@ -6,11 +6,11 @@ import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/julienschmidt/httprouter"
-	com_joinu_im_protobuf "joinu-im-node/proto"
 	"net"
 	"net/http"
 	"tursom-im/attr"
 	"tursom-im/context"
+	"tursom-im/proto"
 )
 
 type WebSocketHandler struct {
@@ -49,7 +49,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 
 		switch op {
 		case ws.OpBinary:
-			imMsg := com_joinu_im_protobuf.ImMsg{}
+			imMsg := tursom_im_protobuf.ImMsg{}
 			err := proto.Unmarshal(msg, &imMsg)
 			if err != nil {
 				fmt.Println(err)
@@ -62,20 +62,15 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	}
 }
 
-func (c *WebSocketHandler) handleBinaryMsg(conn *attr.AttachmentConn, msg *com_joinu_im_protobuf.ImMsg) {
+func (c *WebSocketHandler) handleBinaryMsg(conn *attr.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
 	fmt.Println(msg)
-	imMsg := com_joinu_im_protobuf.ImMsg{
-		CmdId: msg.CmdId,
-	}
+	imMsg := tursom_im_protobuf.ImMsg{}
 
-	switch x := msg.GetContent().(type) {
-	case *com_joinu_im_protobuf.ImMsg_C2CMsgRequest:
-	case *com_joinu_im_protobuf.ImMsg_GroupMsgRequest:
-	case *com_joinu_im_protobuf.ImMsg_LoginRequest:
-		fmt.Println(x.LoginRequest)
+	switch msg.GetContent().(type) {
+	case *tursom_im_protobuf.ImMsg_SendMsgRequest:
+	case *tursom_im_protobuf.ImMsg_LoginRequest:
 		loginResult := c.handleBinaryLogin(conn, msg)
 		imMsg.Content = loginResult
-	case *com_joinu_im_protobuf.ImMsg_OfflineMsgRequest:
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {
@@ -85,9 +80,9 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *attr.AttachmentConn, msg *com_j
 	wsutil.WriteServerBinary(conn, bytes)
 }
 
-func (c *WebSocketHandler) handleBinaryLogin(conn *attr.AttachmentConn, msg *com_joinu_im_protobuf.ImMsg) (loginResult *com_joinu_im_protobuf.ImMsg_LoginResult) {
-	loginResult = &com_joinu_im_protobuf.ImMsg_LoginResult{
-		LoginResult: &com_joinu_im_protobuf.LoginResult{},
+func (c *WebSocketHandler) handleBinaryLogin(conn *attr.AttachmentConn, msg *tursom_im_protobuf.ImMsg) (loginResult *tursom_im_protobuf.ImMsg_LoginResult) {
+	loginResult = &tursom_im_protobuf.ImMsg_LoginResult{
+		LoginResult: &tursom_im_protobuf.LoginResult{},
 	}
 
 	token, err := c.globalContext.TokenContext().Parse(msg.GetLoginRequest().Token)

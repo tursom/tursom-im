@@ -2,11 +2,16 @@ syntax = "proto3";
 
 option optimize_for = SPEED;
 
+option go_package = ".;tursom_im_protobuf";
+
 message ImMsg {
   string msgId = 1;
   oneof content {
     LoginRequest loginRequest = 2;
     LoginResult loginResult = 3;
+    UserMessage userMessage = 4;
+    SendMsgRequest sendMsgRequest = 5;
+    SendMsgResponse sendMsgResponse = 6;
   }
 }
 
