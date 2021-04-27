@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+option optimize_for = SPEED;
+
+message ImMsg {
+  string msgId = 1;
+  oneof content {
+    LoginRequest loginRequest = 2;
+    LoginResult loginResult = 3;
+  }
+}
+
+message LoginRequest {
+  string token = 1;
+}
+
+message LoginResult {
+  bool success = 1;
+  string imUserId = 2;
+}
+
+message UserMessage {
+  string sender = 1;
+  string receiver = 2;
+  oneof content {
+    string msg = 3;
+  }
+}
+
+enum FailType {
+  UNKNOWN = 0;
+  IN_BLACKLIST = 1; // 在对象的黑名单中
+  TARGET_NOT_LOGIN = 2; // 对象未登录
+  MSG_SAVE_FAILURE = 3; // 消息存储失败
+  TARGET_IS_EMPTY = 4; // 目标为空
+  GROUP_NOT_EXIST = 5; // 群组不存在
+  GROUP_MUTED = 6; // 群组被禁言
+  GROUP_USER_MUTED = 7; // 当前用户被群组禁言
+  USER_NOT_IN_GROUP = 8; // 当前用户不在群组中
+}
+
+message SendMsgRequest {
+  string receiver = 1;
+  string reqId = 2;
+  oneof content {
+    string msg = 3;
+  }
+}
+
+message SendMsgResponse {
+  string receiver = 1;
+  string reqId = 2;
+  oneof content {
+    string msg = 3;
+  }
+}
