@@ -1,4 +1,4 @@
-package attr
+package im_conn
 
 import (
 	"net"

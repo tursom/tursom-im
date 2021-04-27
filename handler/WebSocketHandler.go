@@ -8,8 +8,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net"
 	"net/http"
-	"tursom-im/attr"
 	"tursom-im/context"
+	"tursom-im/im_conn"
 	"tursom-im/proto"
 )
 
@@ -38,7 +38,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 		fmt.Println(err2)
 	}()
 
-	attachmentConn := attr.NewSimpleAttachmentConn(&conn)
+	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
 
 	for {
 		msg, op, err := wsutil.ReadClientData(conn)
@@ -62,7 +62,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	}
 }
 
-func (c *WebSocketHandler) handleBinaryMsg(conn *attr.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
+func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
 	fmt.Println(msg)
 	imMsg := tursom_im_protobuf.ImMsg{}
 
@@ -80,7 +80,7 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *attr.AttachmentConn, msg *turso
 	wsutil.WriteServerBinary(conn, bytes)
 }
 
-func (c *WebSocketHandler) handleBinaryLogin(conn *attr.AttachmentConn, msg *tursom_im_protobuf.ImMsg) (loginResult *tursom_im_protobuf.ImMsg_LoginResult) {
+func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) (loginResult *tursom_im_protobuf.ImMsg_LoginResult) {
 	loginResult = &tursom_im_protobuf.ImMsg_LoginResult{
 		LoginResult: &tursom_im_protobuf.LoginResult{},
 	}
