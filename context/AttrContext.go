@@ -1,9 +1,9 @@
 package context
 
 import (
-	"joinu-im-node/attr"
-	"joinu-im-node/proto"
+	com_joinu_im_protobuf "joinu-im-node/proto"
 	"reflect"
+	"tursom-im/attr"
 )
 
 type AttrContext struct {
