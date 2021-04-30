@@ -14,10 +14,10 @@ import (
 )
 
 type WebSocketHandler struct {
-	globalContext context.GlobalContext
+	globalContext *context.GlobalContext
 }
 
-func NewWebSocketHandler(globalContext context.GlobalContext) *WebSocketHandler {
+func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler {
 	return &WebSocketHandler{
 		globalContext: globalContext,
 	}
@@ -65,12 +65,14 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
 	fmt.Println(msg)
 	imMsg := tursom_im_protobuf.ImMsg{}
+	close := false
 
 	switch msg.GetContent().(type) {
 	case *tursom_im_protobuf.ImMsg_SendMsgRequest:
 	case *tursom_im_protobuf.ImMsg_LoginRequest:
 		loginResult := c.handleBinaryLogin(conn, msg)
 		imMsg.Content = loginResult
+		close = !loginResult.LoginResult.Success
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {
@@ -78,6 +80,9 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		return
 	}
 	wsutil.WriteServerBinary(conn, bytes)
+	if close {
+		conn.Close()
+	}
 }
 
 func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) (loginResult *tursom_im_protobuf.ImMsg_LoginResult) {
@@ -90,7 +95,11 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 		fmt.Println(err)
 		return
 	}
-	//TODO 从redis校验token
+
+	if token.Sig != c.globalContext.Config().Admin.Sig {
+		return loginResult
+	}
+
 	userIdAttr := conn.Get(c.globalContext.AttrContext().UserIdAttrKey())
 	userTokenAttr := conn.Get(c.globalContext.AttrContext().UserTokenAttrKey())
 	err = userIdAttr.Set(token.Uid)
@@ -103,6 +112,9 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 		fmt.Println(err)
 		return
 	}
+
+	c.globalContext.UserConnContext().GetUserConn(token.Uid).Add(conn)
+
 	loginResult.LoginResult.ImUserId = token.Uid
 	loginResult.LoginResult.Success = true
 

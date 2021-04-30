@@ -1,6 +1,7 @@
 package im_conn
 
 import (
+	"container/list"
 	"net"
 	"reflect"
 	"sync"
@@ -19,6 +20,11 @@ func (a *AttachmentKey) T() reflect.Type {
 func (a *AttachmentKey) Name() string {
 	return a.name
 }
+
+var CloseListener = NewAttachmentKey(
+	"closeListener",
+	reflect.TypeOf(func(conn AttachmentConn) {}),
+)
 
 type Attachment struct {
 	key        *AttachmentKey
@@ -115,4 +121,13 @@ func (a *AttachmentConn) SetReadDeadline(t time.Time) error {
 
 func (a *AttachmentConn) SetWriteDeadline(t time.Time) error {
 	return (*a.conn).SetWriteDeadline(t)
+}
+
+func (a AttachmentConn) AddCloseListener(callback func(conn AttachmentConn)) {
+	listenerAttach := a.Get(&CloseListener)
+	var listenerList = listenerAttach.Get().(*list.List)
+	if listenerList == nil {
+		listenerList = list.New()
+		listenerAttach.Set(listenerList)
+	}
 }
