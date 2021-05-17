@@ -11,13 +11,15 @@ type GlobalContext struct {
 }
 
 func NewGlobalContext(config *config.Config) *GlobalContext {
-	return &GlobalContext{
+	g := &GlobalContext{
 		tokenContext:    NewTokenContext(),
 		attrContext:     NewAttrContext(),
 		userConnContext: NewUserConnContext(),
 		msgIdContext:    NewMsgIdContext(),
 		cfg:             config,
 	}
+	g.userConnContext.Init(g)
+	return g
 }
 
 func (g *GlobalContext) Config() *config.Config {

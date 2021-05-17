@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"math/rand"

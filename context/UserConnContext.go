@@ -11,8 +11,8 @@ func NewUserConnContext() *UserConnContext {
 	return &UserConnContext{}
 }
 
-func (c UserConnContext) Init(attrContext *AttrContext) {
-	c.attrContext = attrContext
+func (c UserConnContext) Init(ctx *GlobalContext) {
+	c.attrContext = ctx.attrContext
 }
 
 func (c *UserConnContext) TouchUserConn(uid string) *im_conn.ConnGroup {
