@@ -6,6 +6,7 @@ type GlobalContext struct {
 	tokenContext    *TokenContext
 	attrContext     *AttrContext
 	userConnContext *UserConnContext
+	msgIdContext    *MsgIdContext
 	cfg             *config.Config
 }
 
@@ -14,6 +15,7 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 		tokenContext:    NewTokenContext(),
 		attrContext:     NewAttrContext(),
 		userConnContext: NewUserConnContext(),
+		msgIdContext:    NewMsgIdContext(),
 		cfg:             config,
 	}
 }
@@ -32,4 +34,8 @@ func (g *GlobalContext) TokenContext() *TokenContext {
 
 func (g *GlobalContext) UserConnContext() *UserConnContext {
 	return g.userConnContext
+}
+
+func (g *GlobalContext) MsgIdContext() *MsgIdContext {
+	return g.msgIdContext
 }

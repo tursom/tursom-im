@@ -3,11 +3,16 @@ package context
 import "tursom-im/im_conn"
 
 type UserConnContext struct {
-	connMap map[string]*im_conn.ConnGroup
+	connMap     map[string]*im_conn.ConnGroup
+	attrContext *AttrContext
 }
 
 func NewUserConnContext() *UserConnContext {
 	return &UserConnContext{}
+}
+
+func (c UserConnContext) Init(attrContext *AttrContext) {
+	c.attrContext = attrContext
 }
 
 func (c *UserConnContext) TouchUserConn(uid string) *im_conn.ConnGroup {
@@ -21,6 +26,11 @@ func (c *UserConnContext) TouchUserConn(uid string) *im_conn.ConnGroup {
 
 func (c *UserConnContext) GetUserConn(uid string) *im_conn.ConnGroup {
 	return c.connMap[uid]
+}
+
+func (c *UserConnContext) GetCurrentConn(conn *im_conn.AttachmentConn) *im_conn.ConnGroup {
+	currentUserId := conn.Get(c.attrContext.userIdAttrKey)
+	return c.GetUserConn(currentUserId.Get().(string))
 }
 
 func (c *UserConnContext) AddUserConn(uid string, conn *im_conn.AttachmentConn) {

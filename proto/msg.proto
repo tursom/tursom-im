@@ -9,7 +9,7 @@ message ImMsg {
   oneof content {
     LoginRequest loginRequest = 2;
     LoginResult loginResult = 3;
-    UserMessage userMessage = 4;
+    ChatMsg chatMsg = 4;
     SendMsgRequest sendMsgRequest = 5;
     SendMsgResponse sendMsgResponse = 6;
   }
@@ -24,14 +24,6 @@ message LoginResult {
   string imUserId = 2;
 }
 
-message UserMessage {
-  string sender = 1;
-  string receiver = 2;
-  oneof content {
-    string msg = 3;
-  }
-}
-
 enum FailType {
   UNKNOWN = 0;
   IN_BLACKLIST = 1; // 在对象的黑名单中
@@ -44,18 +36,27 @@ enum FailType {
   USER_NOT_IN_GROUP = 8; // 当前用户不在群组中
 }
 
+message MsgContent {
+  oneof content {
+    string msg = 1;
+  }
+}
+
 message SendMsgRequest {
   string receiver = 1;
   string reqId = 2;
-  oneof content {
-    string msg = 3;
-  }
+  MsgContent content = 3;
 }
 
 message SendMsgResponse {
   string receiver = 1;
   string reqId = 2;
-  oneof content {
-    string msg = 3;
-  }
+  bool success = 3;
+  string failType = 4;
+}
+
+message ChatMsg {
+  string receiver = 1;
+  string sender = 2;
+  MsgContent content = 3;
 }

@@ -2,6 +2,8 @@ package im_conn
 
 import (
 	"github.com/gobwas/ws/wsutil"
+	"github.com/golang/protobuf/proto"
+	tursom_im_protobuf "tursom-im/proto"
 )
 
 type void struct{}
@@ -26,15 +28,28 @@ func (g *ConnGroup) Remove(conn *AttachmentConn) {
 	delete(g.connList, conn)
 }
 
-func (g *ConnGroup) WriteBinaryFrame(bytes []byte) {
+func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) bool) {
 	for conn := range g.connList {
-		wsutil.WriteServerBinary(conn, bytes)
+		if filter != nil && filter(conn) {
+			wsutil.WriteServerBinary(conn, bytes)
+		}
 	}
 }
 
-func (g *ConnGroup) WriteTextFrame(text string) {
+func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) bool) {
 	bytes := []byte(text)
 	for conn := range g.connList {
-		wsutil.WriteServerText(conn, bytes)
+		if filter != nil && filter(conn) {
+			wsutil.WriteServerText(conn, bytes)
+		}
 	}
+}
+
+func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*AttachmentConn) bool) error {
+	bytes, err := proto.Marshal(msg)
+	if err != nil {
+		return err
+	}
+	g.WriteBinaryFrame(bytes, filter)
+	return nil
 }

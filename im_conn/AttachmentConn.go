@@ -69,8 +69,8 @@ func NewSimpleAttachmentConn(conn *net.Conn) *AttachmentConn {
 	}
 }
 
-func (a *AttachmentConn) Get(key *AttachmentKey) Attachment {
-	return Attachment{
+func (a *AttachmentConn) Get(key *AttachmentKey) *Attachment {
+	return &Attachment{
 		key:        key,
 		attachment: a.attachment,
 	}
