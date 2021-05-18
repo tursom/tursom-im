@@ -3,7 +3,7 @@ package context
 import (
 	"reflect"
 	"tursom-im/im_conn"
-	tursom_im_protobuf "tursom-im/proto"
+	"tursom-im/tursom_im_protobuf"
 )
 
 type AttrContext struct {

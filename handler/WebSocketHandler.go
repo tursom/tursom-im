@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"tursom-im/context"
 	"tursom-im/im_conn"
-	"tursom-im/proto"
+	"tursom-im/tursom_im_protobuf"
 )
 
 type WebSocketHandler struct {

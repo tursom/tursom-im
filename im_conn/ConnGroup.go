@@ -3,7 +3,7 @@ package im_conn
 import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
-	tursom_im_protobuf "tursom-im/proto"
+	"tursom-im/tursom_im_protobuf"
 )
 
 type void struct{}

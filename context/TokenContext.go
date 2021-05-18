@@ -7,7 +7,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"math"
 	"math/big"
-	"tursom-im/proto"
+	"tursom-im/tursom_im_protobuf"
 )
 
 type TokenContext struct {
