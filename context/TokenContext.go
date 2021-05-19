@@ -11,14 +11,22 @@ import (
 )
 
 type TokenContext struct {
-	sigMap map[string]uint64
+	sigMap     map[string]uint64
+	sqlContext SqlContext
 }
 
 func NewTokenContext() *TokenContext {
-	return &TokenContext{}
+	return &TokenContext{
+		map[string]uint64{},
+		nil,
+	}
 }
 
-func (c TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, error) {
+func (c *TokenContext) Init(ctx *GlobalContext) {
+	c.sqlContext = ctx.sqlContext
+}
+
+func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, error) {
 	tokenBytes, err := b64.StdEncoding.DecodeString(tokenStr)
 	if err != nil {
 		fmt.Println(err)
@@ -29,10 +37,10 @@ func (c TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, error
 	return &token, err
 }
 
-func (c *TokenContext) FlushToken(uid string) string {
+func (c *TokenContext) FlushToken(uid string) (string, error) {
 	sig, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
-		return ""
+		return "", err
 	}
 	c.sigMap[uid] = sig.Uint64()
 	token := &tursom_im_protobuf.ImToken{
@@ -42,7 +50,12 @@ func (c *TokenContext) FlushToken(uid string) string {
 
 	bytes, err := proto.Marshal(token)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return b64.StdEncoding.EncodeToString(bytes)
+	newToken := b64.StdEncoding.EncodeToString(bytes)
+	err = c.sqlContext.GetUserTableContext().PushToken(uid, newToken)
+	if err != nil {
+		return "", err
+	}
+	return newToken, nil
 }

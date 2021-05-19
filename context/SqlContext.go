@@ -4,7 +4,8 @@ import "database/sql"
 
 type SqlContext interface {
 	GetDB() *sql.DB
-	GetUserTableContext() *UserTableContext
+	GetUserTableContext() UserTableContext
+	Init(ctx *GlobalContext)
 }
 
 type User struct {
@@ -12,13 +13,21 @@ type User struct {
 	token []string
 }
 
+func (u *User) Id() string {
+	return u.id
+}
+
+func (u *User) Token() []string {
+	return u.token
+}
+
 type Table interface {
-	CreateTable()
+	CreateTable() error
 }
 
 type UserTableContext interface {
-	CreateUser() *User
-	FindById(uid string) *User
-	GetToken(uid string) *[]string
-	PushToken(uid string, token string)
+	CreateUser() (*User, error)
+	FindById(uid string) (*User, error)
+	GetToken(uid string) (*[]string, error)
+	PushToken(uid string, token string) error
 }

@@ -29,12 +29,12 @@ func (t *TokenHandler) NewToken(w http.ResponseWriter, r *http.Request, _ httpro
 		w.WriteHeader(400)
 		return
 	}
-	token := t.globalContext.TokenContext().FlushToken(uid[0])
-	if len(token) == 0 {
+	token, err := t.globalContext.TokenContext().FlushToken(uid[0])
+	if err != nil || len(token) == 0 {
 		w.WriteHeader(500)
 		return
 	}
-	_, err := w.Write([]byte(token))
+	_, err = w.Write([]byte(token))
 	if err != nil {
 		w.WriteHeader(500)
 		return

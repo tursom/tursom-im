@@ -8,7 +8,7 @@ import (
 
 type SqliteSqlContext struct {
 	db               *sql.DB
-	userTableContext SqliteUserTableContext
+	userTableContext *SqliteUserTableContext
 }
 
 func NewSqliteSqlContext() *SqliteSqlContext {
@@ -17,9 +17,10 @@ func NewSqliteSqlContext() *SqliteSqlContext {
 		fmt.Println(err)
 		return nil
 	}
+	db.SetMaxOpenConns(1)
 	s := &SqliteSqlContext{
 		db:               db,
-		userTableContext: SqliteUserTableContext{db: db},
+		userTableContext: NewSqliteUserTableContext(db),
 	}
 	s.userTableContext.CreateTable()
 	return s
@@ -33,6 +34,6 @@ func (s *SqliteSqlContext) GetDB() *sql.DB {
 	return s.db
 }
 
-func (s *SqliteSqlContext) GetUserTableContext() *UserTableContext {
-	panic("implement me")
+func (s *SqliteSqlContext) GetUserTableContext() UserTableContext {
+	return s.userTableContext
 }

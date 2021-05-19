@@ -8,6 +8,7 @@ type GlobalContext struct {
 	userConnContext *UserConnContext
 	msgIdContext    *MsgIdContext
 	cfg             *config.Config
+	sqlContext      SqlContext
 }
 
 func NewGlobalContext(config *config.Config) *GlobalContext {
@@ -17,8 +18,11 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 		userConnContext: NewUserConnContext(),
 		msgIdContext:    NewMsgIdContext(),
 		cfg:             config,
+		sqlContext:      NewSqliteSqlContext(),
 	}
 	g.userConnContext.Init(g)
+	g.sqlContext.Init(g)
+	g.tokenContext.Init(g)
 	return g
 }
 
@@ -40,4 +44,12 @@ func (g *GlobalContext) UserConnContext() *UserConnContext {
 
 func (g *GlobalContext) MsgIdContext() *MsgIdContext {
 	return g.msgIdContext
+}
+
+func (g *GlobalContext) Cfg() *config.Config {
+	return g.cfg
+}
+
+func (g *GlobalContext) SqlContext() SqlContext {
+	return g.sqlContext
 }
