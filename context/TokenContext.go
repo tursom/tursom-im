@@ -23,6 +23,14 @@ func (t *TokenSigError) Error() string {
 	return "token \"" + t.token + "\" for user \"" + t.uid + "\" have wrong sig"
 }
 
+type TokenParseError struct {
+	msg string
+}
+
+func (t *TokenParseError) Error() string {
+	return t.msg
+}
+
 func NewTokenContext() *TokenContext {
 	return &TokenContext{}
 }
@@ -31,29 +39,32 @@ func (c *TokenContext) Init(ctx *GlobalContext) {
 	c.sqlContext = ctx.sqlContext
 }
 
-func (c *TokenContext) Parse(tokenStr string) (tursom_im_protobuf.ImToken, error) {
+func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, error) {
 	tokenBytes, err := b64.StdEncoding.DecodeString(tokenStr)
 	if err != nil {
 		fmt.Println(err)
-		return tursom_im_protobuf.ImToken{}, err
+		return nil, err
 	}
 	token := tursom_im_protobuf.ImToken{}
 	err = proto.Unmarshal(tokenBytes, &token)
 	if err != nil {
-		return tursom_im_protobuf.ImToken{}, err
+		return nil, err
 	}
 
 	user, err := c.sqlContext.GetUserTableContext().FindById(token.Uid)
-	if err != nil || user != nil {
-		return tursom_im_protobuf.ImToken{}, err
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return nil, &TokenParseError{token.Uid + " not found"}
 	}
 
 	for i := range user.Token() {
 		if user.Token()[i] == tokenStr {
-			return token, nil
+			return &token, nil
 		}
 	}
-	return tursom_im_protobuf.ImToken{}, &TokenSigError{tokenStr, token.Uid}
+	return nil, &TokenSigError{tokenStr, token.Uid}
 }
 
 func (c *TokenContext) FlushToken(uid string) (string, error) {

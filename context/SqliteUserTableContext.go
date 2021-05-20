@@ -11,6 +11,14 @@ type SqliteUserTableContext struct {
 	msgIdContext *MsgIdContext
 }
 
+type UserNotFoundError struct {
+	uid string
+}
+
+func (u *UserNotFoundError) Error() string {
+	return "user \"" + u.uid + "\" not found"
+}
+
 func (s *SqliteUserTableContext) Init(ctx *GlobalContext) {
 	s.msgIdContext = ctx.msgIdContext
 }
@@ -77,21 +85,21 @@ func (s *SqliteUserTableContext) PushToken(uid string, token string) error {
 	if err != nil {
 		return err
 	}
-	newToken := []string{token}
-	if tokenExist != nil {
-		for i := 0; i < 9 && i < len(*tokenExist); i++ {
-			newToken = append(newToken, (*tokenExist)[i])
-		}
+	if tokenExist == nil {
+		return &UserNotFoundError{uid}
 	}
+
+	newToken := []string{token}
+	for i := 0; i < 9 && i < len(*tokenExist); i++ {
+		newToken = append(newToken, (*tokenExist)[i])
+	}
+
 	tokenBytes, err := json.Marshal(newToken)
 	if err != nil {
 		return err
 	}
-	if tokenExist != nil {
-		_, err = s.db.Exec("update user set token=? where id = ?", string(tokenBytes), uid)
-	} else {
-		_, err = s.CreateUserWithToken(uid, token)
-	}
+
+	_, err = s.db.Exec("update user set token=? where id = ?", string(tokenBytes), uid)
 	return err
 }
 

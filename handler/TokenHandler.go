@@ -1,22 +1,32 @@
 package handler
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"net/http"
 	"tursom-im/context"
 )
 
 type TokenHandler struct {
-	globalContext context.GlobalContext
+	globalContext *context.GlobalContext
 }
 
-func NewTokenHandler(ctx context.GlobalContext) *TokenHandler {
+func NewTokenHandler(ctx *context.GlobalContext) *TokenHandler {
 	return &TokenHandler{
 		globalContext: ctx,
 	}
 }
 
-func (t *TokenHandler) NewToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (t *TokenHandler) InitWebHandler(basePath string, router *httprouter.Router) {
+	router.POST(basePath+"/token", t.FlushToken)
+	router.PUT(basePath+"/user", t.NewUser)
+}
+
+func (t *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var err error = nil
+	defer handleError(w, err)
+
 	appId := t.globalContext.Config().Admin.CheckAdmin(r)
 	if appId == nil {
 		w.WriteHeader(502)
@@ -29,13 +39,53 @@ func (t *TokenHandler) NewToken(w http.ResponseWriter, r *http.Request, _ httpro
 		return
 	}
 	token, err := t.globalContext.TokenContext().FlushToken(uid[0])
-	if err != nil || len(token) == 0 {
+	if err != nil {
+		return
+	}
+	if len(token) == 0 {
 		w.WriteHeader(500)
 		return
 	}
+
 	_, err = w.Write([]byte(token))
 	if err != nil {
-		w.WriteHeader(500)
 		return
+	}
+}
+
+func (t *TokenHandler) NewUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var err error = nil
+	defer handleError(w, err)
+
+	appId := t.globalContext.Config().Admin.CheckAdmin(r)
+	if appId == nil {
+		w.WriteHeader(502)
+		return
+	}
+
+	user, err := t.globalContext.SqlContext().GetUserTableContext().CreateUser()
+	if err != nil {
+		return
+	}
+
+	userBytes, err := json.Marshal(user)
+	if err != nil {
+		return
+	}
+
+	_, err = w.Write(userBytes)
+	if err != nil {
+		return
+	}
+}
+
+func handleError(w http.ResponseWriter, err error) {
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(500)
+		_, err = w.Write([]byte(err.Error()))
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }

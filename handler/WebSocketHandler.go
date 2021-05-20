@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net"
 	"net/http"
+	"runtime"
 	"tursom-im/context"
 	"tursom-im/im_conn"
 	"tursom-im/tursom_im_protobuf"
@@ -21,6 +22,10 @@ func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler
 	return &WebSocketHandler{
 		globalContext: globalContext,
 	}
+}
+
+func (c *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Router) {
+	router.GET(basePath+"/ws", c.UpgradeToWebSocket)
 }
 
 func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -38,25 +43,53 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
 
 	for {
-		msg, op, err := wsutil.ReadClientData(conn)
+		err := c.loop(attachmentConn)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		switch op {
-		case ws.OpBinary:
-			imMsg := tursom_im_protobuf.ImMsg{}
-			err := proto.Unmarshal(msg, &imMsg)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			c.handleBinaryMsg(attachmentConn, &imMsg)
-		case ws.OpText:
-		case ws.OpPing:
-		}
 	}
+}
+
+func (c *WebSocketHandler) loop(conn *im_conn.AttachmentConn) (err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("an panic caused on handle WebSocket message")
+			fmt.Println(err)
+			for i := 0; ; i++ {
+				pc, file, line, ok := runtime.Caller(i)
+				if !ok {
+					break
+				}
+				fmt.Println(pc, file, line)
+			}
+		}
+	}()
+
+	msg, op, err := wsutil.ReadClientData(conn)
+	if err != nil {
+		return err
+	}
+
+	if !op.IsData() {
+		return nil
+	}
+
+	switch op {
+	case ws.OpBinary:
+		imMsg := tursom_im_protobuf.ImMsg{}
+		err = proto.Unmarshal(msg, &imMsg)
+		if err != nil {
+			return err
+		}
+		c.handleBinaryMsg(conn, &imMsg)
+	case ws.OpText:
+		panic("could not handle text message")
+	default:
+		panic("could not handle unknown message")
+	}
+
+	return nil
 }
 
 func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
@@ -71,6 +104,11 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 			}
 		}
 	}()
+
+	if msg.SelfMsg {
+		c.handleSelfMsg(conn, msg)
+		return
+	}
 
 	switch msg.GetContent().(type) {
 	case *tursom_im_protobuf.ImMsg_SendMsgRequest:
@@ -91,8 +129,16 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 	}
 }
 
+func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
+	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string)
+	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
+	currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
+		return conn != c
+	})
+}
+
 func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) (response *tursom_im_protobuf.ImMsg_SendMsgResponse, msgId string) {
-	response = &tursom_im_protobuf.ImMsg_SendMsgResponse{}
+	response = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: &tursom_im_protobuf.SendMsgResponse{}}
 	msgId = c.globalContext.MsgIdContext().NewMsgIdStr()
 	sendMsgRequest := msg.GetSendMsgRequest()
 
@@ -102,9 +148,9 @@ func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *
 
 	receiver := sendMsgRequest.Receiver
 	receiverConn := c.globalContext.UserConnContext().GetUserConn(receiver)
-	currentConn := c.globalContext.UserConnContext().GetUserConn(receiver)
+	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
 	if receiverConn == nil || currentConn == nil {
-		response.SendMsgResponse.FailMsg = "user not login"
+		response.SendMsgResponse.FailMsg = "user \"" + receiver + "\" not login"
 		response.SendMsgResponse.FailType = tursom_im_protobuf.FailType_TARGET_NOT_LOGIN
 		return
 	}
@@ -119,7 +165,7 @@ func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *
 	}
 	receiverConn.WriteChatMsg(imMsg, nil)
 	currentConn.WriteChatMsg(imMsg, func(c *im_conn.AttachmentConn) bool {
-		return conn == c
+		return conn != c
 	})
 
 	return
@@ -143,7 +189,7 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 		fmt.Println(err)
 		return
 	}
-	err = userTokenAttr.Set(&token)
+	err = userTokenAttr.Set(token)
 	if err != nil {
 		fmt.Println(err)
 		return
