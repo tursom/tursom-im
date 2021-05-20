@@ -1,3 +1,7 @@
 admin:
   id: im-admin
   password: im-admin
+ssl:
+  enable: false
+  cert: cert.crt
+  key: cert.key

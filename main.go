@@ -45,7 +45,11 @@ func main() {
 	webSocketHandler.InitWebHandler("", router)
 
 	fmt.Println("server start on port " + strconv.Itoa(cfg.Server.Port))
-	err = http.ListenAndServe(":"+strconv.Itoa(cfg.Server.Port), router)
+	if cfg.SSL.Enable {
+		err = http.ListenAndServeTLS(":"+strconv.Itoa(cfg.Server.Port), cfg.SSL.Cert, cfg.SSL.Key, router)
+	} else {
+		err = http.ListenAndServe(":"+strconv.Itoa(cfg.Server.Port), router)
+	}
 	if err != nil {
 		fmt.Println(err)
 		return

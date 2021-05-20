@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"net"
 	"net/http"
+	"os"
 	"runtime"
 	"tursom-im/context"
 	"tursom-im/im_conn"
@@ -52,16 +53,17 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 }
 
 func (c *WebSocketHandler) loop(conn *im_conn.AttachmentConn) (err error) {
+	//goland:noinspection GoUnhandledErrorResult
 	defer func() {
 		if err := recover(); err != nil {
-			fmt.Println("an panic caused on handle WebSocket message")
-			fmt.Println(err)
-			for i := 0; ; i++ {
+			fmt.Fprintln(os.Stderr, "an panic caused on handle WebSocket message")
+			fmt.Fprintln(os.Stderr, err)
+			for i := 1; ; i++ {
 				pc, file, line, ok := runtime.Caller(i)
 				if !ok {
 					break
 				}
-				fmt.Println(pc, file, line)
+				fmt.Fprintln(os.Stderr, pc, file, line)
 			}
 		}
 	}()
