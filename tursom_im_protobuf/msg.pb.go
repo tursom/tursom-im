@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.26.0-devel
 // 	protoc        v3.17.0
-// source: msg.proto
+// source: TursomImMsg.proto
 
 package tursom_im_protobuf
 

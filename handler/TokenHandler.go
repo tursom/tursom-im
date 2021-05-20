@@ -17,9 +17,8 @@ func NewTokenHandler(ctx context.GlobalContext) *TokenHandler {
 }
 
 func (t *TokenHandler) NewToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	appId := r.Header["AppId"][0]
-	appToken := r.Header["AppToken"][0]
-	if appId != t.globalContext.Config().Admin.Id || appToken != t.globalContext.Config().Admin.Password {
+	appId := t.globalContext.Config().Admin.CheckAdmin(r)
+	if appId == nil {
 		w.WriteHeader(502)
 		return
 	}

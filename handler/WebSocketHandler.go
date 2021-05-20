@@ -33,12 +33,7 @@ func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 }
 
 func (c *WebSocketHandler) Handle(conn net.Conn) {
-	defer func() {
-		err2 := conn.Close()
-		if err2 != nil {
-			fmt.Println(err2)
-		}
-	}()
+	defer conn.Close()
 
 	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
 
@@ -140,10 +135,6 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 		return
 	}
 
-	if token.Sig != c.globalContext.Config().Admin.Sig {
-		return loginResult
-	}
-
 	userIdAttr := conn.Get(c.globalContext.AttrContext().UserIdAttrKey())
 	userTokenAttr := conn.Get(c.globalContext.AttrContext().UserTokenAttrKey())
 	err = userIdAttr.Set(token.Uid)
@@ -151,13 +142,13 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 		fmt.Println(err)
 		return
 	}
-	err = userTokenAttr.Set(token)
+	err = userTokenAttr.Set(&token)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	c.globalContext.UserConnContext().GetUserConn(token.Uid).Add(conn)
+	c.globalContext.UserConnContext().TouchUserConn(token.Uid).Add(conn)
 
 	loginResult.LoginResult.ImUserId = token.Uid
 	loginResult.LoginResult.Success = true

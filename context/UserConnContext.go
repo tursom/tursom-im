@@ -8,7 +8,7 @@ type UserConnContext struct {
 }
 
 func NewUserConnContext() *UserConnContext {
-	return &UserConnContext{}
+	return &UserConnContext{make(map[string]*im_conn.ConnGroup), nil}
 }
 
 func (c UserConnContext) Init(ctx *GlobalContext) {
