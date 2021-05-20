@@ -9,10 +9,10 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"tursom-im/context"
 	"tursom-im/im_conn"
 	"tursom-im/tursom_im_protobuf"
+	"tursom-im/utils"
 )
 
 type WebSocketHandler struct {
@@ -39,6 +39,7 @@ func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 }
 
 func (c *WebSocketHandler) Handle(conn net.Conn) {
+	//goland:noinspection GoUnhandledErrorResult
 	defer conn.Close()
 
 	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
@@ -54,19 +55,10 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 
 func (c *WebSocketHandler) loop(conn *im_conn.AttachmentConn) (err error) {
 	//goland:noinspection GoUnhandledErrorResult
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Fprintln(os.Stderr, "an panic caused on handle WebSocket message")
-			fmt.Fprintln(os.Stderr, err)
-			for i := 1; ; i++ {
-				pc, file, line, ok := runtime.Caller(i)
-				if !ok {
-					break
-				}
-				fmt.Fprintln(os.Stderr, pc, file, line)
-			}
-		}
-	}()
+	defer utils.Recover(func() {
+		fmt.Fprintln(os.Stderr, "an panic caused on handle WebSocket message")
+		conn.Close()
+	})
 
 	msg, op, err := wsutil.ReadClientData(conn)
 	if err != nil {
@@ -134,6 +126,7 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
 	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string)
 	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
+	//goland:noinspection GoUnhandledErrorResult
 	currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
 		return conn != c
 	})

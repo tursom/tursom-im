@@ -22,7 +22,18 @@ func NewConnGroup() *ConnGroup {
 }
 
 func (g *ConnGroup) Add(conn *AttachmentConn) {
+	if conn == nil {
+		return
+	}
 	g.connList[conn] = member
+	conn.AddEventListener(g.connClosedListener)
+}
+
+func (g *ConnGroup) connClosedListener(i ConnEvent) {
+	switch i.EventId() {
+	case ConnClosedId:
+		g.Remove(i.Conn())
+	}
 }
 
 func (g *ConnGroup) Remove(conn *AttachmentConn) {

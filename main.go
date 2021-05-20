@@ -44,7 +44,7 @@ func main() {
 	tokenHandler.InitWebHandler("", router)
 	webSocketHandler.InitWebHandler("", router)
 
-	fmt.Println("server start on port " + strconv.Itoa(cfg.Server.Port))
+	fmt.Println("server will start on port " + strconv.Itoa(cfg.Server.Port))
 	if cfg.SSL.Enable {
 		err = http.ListenAndServeTLS(":"+strconv.Itoa(cfg.Server.Port), cfg.SSL.Cert, cfg.SSL.Key, router)
 	} else {

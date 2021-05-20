@@ -1,11 +1,11 @@
 package im_conn
 
 import (
-	"container/list"
 	"net"
 	"reflect"
 	"sync"
 	"time"
+	"tursom-im/utils"
 )
 
 type AttachmentKey struct {
@@ -21,19 +21,15 @@ func (a *AttachmentKey) Name() string {
 	return a.name
 }
 
-var CloseListener = NewAttachmentKey(
-	"closeListener",
-	reflect.TypeOf(func(conn AttachmentConn) {}),
-)
-
 type Attachment struct {
 	key        *AttachmentKey
 	attachment *sync.Map
 }
 
 type AttachmentConn struct {
-	conn       *net.Conn
-	attachment *sync.Map
+	conn              *net.Conn
+	attachment        *sync.Map
+	eventListenerList utils.MultipleList
 }
 
 type InvalidTypeError struct {
@@ -56,8 +52,9 @@ func NewAttachmentConn(conn *net.Conn, attachment *sync.Map) *AttachmentConn {
 		attachment = &newMap
 	}
 	return &AttachmentConn{
-		conn:       conn,
-		attachment: attachment,
+		conn:              conn,
+		attachment:        attachment,
+		eventListenerList: utils.NewLinkedList(),
 	}
 }
 
@@ -76,6 +73,21 @@ func (a *AttachmentConn) Get(key *AttachmentKey) *Attachment {
 	}
 }
 
+func (a *AttachmentConn) notify(event ConnEvent) {
+	iterator := a.eventListenerList.Iterator()
+	for iterator.HasNext() {
+		next := iterator.Next()
+		switch next.(type) {
+		case func(ConnEvent):
+			f := next.(func(ConnEvent))
+			func() {
+				defer utils.Recover(nil)
+				f(event)
+			}()
+		}
+	}
+}
+
 func (a *Attachment) Get() interface{} {
 	load, _ := a.attachment.Load(a.key.name)
 	return load
@@ -91,6 +103,18 @@ func (a *Attachment) Set(value interface{}) error {
 	}
 }
 
+func (a *AttachmentConn) AddEventListener(f func(event ConnEvent)) {
+	if f != nil {
+		a.eventListenerList.Append(f)
+	}
+}
+
+func (a *AttachmentConn) RemoveEventListener(f func(ConnEvent)) {
+	if f != nil {
+		a.eventListenerList.Remove(f)
+	}
+}
+
 func (a *AttachmentConn) Read(b []byte) (n int, err error) {
 	return (*a.conn).Read(b)
 }
@@ -100,6 +124,7 @@ func (a *AttachmentConn) Write(b []byte) (n int, err error) {
 }
 
 func (a *AttachmentConn) Close() error {
+	a.notify(ConnClosed{a})
 	return (*a.conn).Close()
 }
 
@@ -121,13 +146,4 @@ func (a *AttachmentConn) SetReadDeadline(t time.Time) error {
 
 func (a *AttachmentConn) SetWriteDeadline(t time.Time) error {
 	return (*a.conn).SetWriteDeadline(t)
-}
-
-func (a AttachmentConn) AddCloseListener(callback func(conn AttachmentConn)) {
-	listenerAttach := a.Get(&CloseListener)
-	var listenerList = listenerAttach.Get().(*list.List)
-	if listenerList == nil {
-		listenerList = list.New()
-		listenerAttach.Set(listenerList)
-	}
 }
