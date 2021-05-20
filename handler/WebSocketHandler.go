@@ -104,7 +104,8 @@ func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *
 	receiverConn := c.globalContext.UserConnContext().GetUserConn(receiver)
 	currentConn := c.globalContext.UserConnContext().GetUserConn(receiver)
 	if receiverConn == nil || currentConn == nil {
-		response.SendMsgResponse.FailType = "user not login"
+		response.SendMsgResponse.FailMsg = "user not login"
+		response.SendMsgResponse.FailType = tursom_im_protobuf.FailType_TARGET_NOT_LOGIN
 		return
 	}
 

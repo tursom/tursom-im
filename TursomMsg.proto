@@ -52,7 +52,8 @@ message SendMsgResponse {
   string receiver = 1;
   string reqId = 2;
   bool success = 3;
-  string failType = 4;
+  string failMsg = 4;
+  FailType failType = 5;
 }
 
 message ChatMsg {

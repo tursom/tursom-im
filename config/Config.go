@@ -2,18 +2,24 @@ package config
 
 import "net/http"
 
+type Config struct {
+	Admin  AdminConfig  `yaml:"admin"`
+	Server ServerConfig `yaml:"server"`
+}
+
 type AdminConfig struct {
 	Id       string `yaml:"id"`
 	Password string `yaml:"password"`
 }
 
-type Config struct {
-	Admin AdminConfig `yaml:"admin"`
+type ServerConfig struct {
+	Port int `yaml:"port"`
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Admin: AdminConfig{},
+		Admin:  AdminConfig{},
+		Server: ServerConfig{Port: 12345},
 	}
 }
 
