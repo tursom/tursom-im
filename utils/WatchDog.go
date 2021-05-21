@@ -2,42 +2,56 @@ package utils
 
 import (
 	"github.com/tursom/GoCollections/collections"
+	"github.com/tursom/GoCollections/exceptions"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 type WatchDog struct {
-	feeding  bool
+	feeding  uint32
+	life     uint32
 	callback func() bool
 }
 
 var watchDogMutex = sync.Mutex{}
-var watchDogList = collections.NewLinkedList()
-var watchDogId int32 = 0
+var watchDogList collections.MutableList = collections.NewLinkedList()
 
-func InitWatchDog(delay time.Duration) {
-	currentWatchDogId := atomic.AddInt32(&watchDogId, 1)
+func InitWatchDog() {
 	go func() {
-		for currentWatchDogId == watchDogId {
+		for {
+			start := time.Now().UnixNano()
 			watchDogMutex.Lock()
+			//fmt.Println("watch dog loop", watchDogList)
 			_ = collections.LoopMutable(watchDogList, func(element interface{}, iterator collections.MutableIterator) (err error) {
 				watchDog := element.(*WatchDog)
-				if !watchDog.feeding {
-					if watchDog.callback() {
+				watchDog.feeding--
+				if watchDog.feeding == 0 {
+					watchDog.feeding = watchDog.life
+					_, _ = exceptions.Try(func() (ret interface{}, err error) {
+						if watchDog.callback() {
+							_ = iterator.Remove()
+						}
+						return
+					}, func(panic interface{}) (ret interface{}, err error) {
+						exceptions.PackageAny(panic).PrintStackTrace()
 						_ = iterator.Remove()
-					}
+						return
+					})
 				}
 				return
 			})
 			watchDogMutex.Unlock()
-			time.Sleep(delay)
+			end := time.Now().UnixNano()
+			delay := time.Second - time.Nanosecond*time.Duration(end-start)
+			if delay > 0 {
+				time.Sleep(delay)
+			}
 		}
 	}()
 }
 
-func NewWatchDog(callback func() bool) *WatchDog {
-	w := &WatchDog{true, callback}
+func NewWatchDog(life uint32, callback func() bool) *WatchDog {
+	w := &WatchDog{life, life, callback}
 	watchDogMutex.Lock()
 	watchDogList.Add(w)
 	watchDogMutex.Unlock()
@@ -45,5 +59,9 @@ func NewWatchDog(callback func() bool) *WatchDog {
 }
 
 func (w *WatchDog) Feed() {
-	w.feeding = true
+	w.feeding = w.life
+}
+
+func (w WatchDog) Life() uint32 {
+	return w.feeding
 }

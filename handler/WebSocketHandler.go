@@ -44,7 +44,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	defer conn.Close()
 
 	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
-	watchDog := utils.NewWatchDog(func() bool {
+	watchDog := utils.NewWatchDog(60, func() bool {
 		_ = conn.Close()
 		return true
 	})
@@ -66,12 +66,12 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 
 			switch op {
 			case ws.OpBinary:
-				imMsg := tursom_im_protobuf.ImMsg{}
-				err = proto.Unmarshal(msg, &imMsg)
+				imMsg := &tursom_im_protobuf.ImMsg{}
+				err = proto.Unmarshal(msg, imMsg)
 				if err != nil {
 					return nil, exceptions.Package(err)
 				}
-				c.handleBinaryMsg(attachmentConn, &imMsg)
+				c.handleBinaryMsg(attachmentConn, imMsg)
 			case ws.OpText:
 				exception.NewUnsupportedException("could not handle text message").PrintStackTrace()
 			default:
@@ -102,15 +102,13 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 }
 
 func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
-	fmt.Println(msg)
+	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get()
+	fmt.Println(sender, ":", msg)
 	imMsg := tursom_im_protobuf.ImMsg{}
 	closeConnection := false
 	defer func() {
 		if closeConnection {
-			err := conn.Close()
-			if err != nil {
-				exceptions.Print(err)
-			}
+			_ = conn.Close()
 		}
 	}()
 
@@ -126,6 +124,8 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		loginResult := c.handleBinaryLogin(conn, msg)
 		imMsg.Content = loginResult
 		closeConnection = !loginResult.LoginResult.Success
+	case *tursom_im_protobuf.ImMsg_HeartBeat:
+		imMsg.Content = msg.Content
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {

@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+option optimize_for = SPEED;
+
+package cn.tursom.im.protobuf;
+option java_outer_classname = "TursomMsg";
+option go_package = "./tursom_im_protobuf";
+
+message ImMsg {
+  string msgId = 1;
+  bool selfMsg = 7;
+  oneof content {
+    LoginRequest loginRequest = 2;
+    LoginResult loginResult = 3;
+    ChatMsg chatMsg = 4;
+    SendMsgRequest sendMsgRequest = 5;
+    SendMsgResponse sendMsgResponse = 6;
+    string heartBeat = 8;
+  }
+}
+
+message LoginRequest {
+  string token = 1;
+}
+
+message LoginResult {
+  bool success = 1;
+  string imUserId = 2;
+}
+
+enum FailType {
+  UNKNOWN = 0;
+  IN_BLACKLIST = 1; // 在对象的黑名单中
+  TARGET_NOT_LOGIN = 2; // 对象未登录
+  MSG_SAVE_FAILURE = 3; // 消息存储失败
+  TARGET_IS_EMPTY = 4; // 目标为空
+  GROUP_NOT_EXIST = 5; // 群组不存在
+  GROUP_MUTED = 6; // 群组被禁言
+  GROUP_USER_MUTED = 7; // 当前用户被群组禁言
+  USER_NOT_IN_GROUP = 8; // 当前用户不在群组中
+}
+
+message MsgContent {
+  oneof content {
+    string msg = 1;
+  }
+}
+
+message SendMsgRequest {
+  string receiver = 1;
+  string reqId = 2;
+  MsgContent content = 3;
+}
+
+message SendMsgResponse {
+  string receiver = 1;
+  string reqId = 2;
+  bool success = 3;
+  string failMsg = 4;
+  FailType failType = 5;
+}
+
+message ChatMsg {
+  string receiver = 1;
+  string sender = 2;
+  MsgContent content = 3;
+}

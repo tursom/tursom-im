@@ -20,7 +20,7 @@ import (
 
 func SystemInit() (*config.Config, error) {
 	rand.Seed(time.Now().UnixNano())
-	utils.InitWatchDog(time.Second * 60)
+	utils.InitWatchDog()
 
 	cfg := config.NewConfig()
 	configFile, err := ioutil.ReadFile("config.yaml")
