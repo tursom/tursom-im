@@ -1,6 +1,8 @@
 package context
 
-import "tursom-im/config"
+import (
+	"tursom-im/config"
+)
 
 type GlobalContext struct {
 	tokenContext    *TokenContext
@@ -12,17 +14,42 @@ type GlobalContext struct {
 }
 
 func NewGlobalContext(config *config.Config) *GlobalContext {
-	g := &GlobalContext{
-		tokenContext:    NewTokenContext(),
-		attrContext:     NewAttrContext(),
-		userConnContext: NewUserConnContext(),
-		msgIdContext:    NewMsgIdContext(),
-		cfg:             config,
-		sqlContext:      NewSqliteSqlContext(),
+	sqlContext := NewSqliteSqlContext()
+	if sqlContext == nil {
+		return nil
 	}
+
+	tokenContext := NewTokenContext()
+	if tokenContext == nil {
+		return nil
+	}
+
+	attrContext := NewAttrContext()
+	if attrContext == nil {
+		return nil
+	}
+
+	userConnContext := NewUserConnContext()
+	if userConnContext == nil {
+		return nil
+	}
+
+	msgIdContext := NewMsgIdContext()
+	if msgIdContext == nil {
+		return nil
+	}
+
+	g := &GlobalContext{
+		tokenContext:    tokenContext,
+		attrContext:     attrContext,
+		userConnContext: userConnContext,
+		msgIdContext:    msgIdContext,
+		cfg:             config,
+		sqlContext:      sqlContext,
+	}
+	g.tokenContext.Init(g)
 	g.userConnContext.Init(g)
 	g.sqlContext.Init(g)
-	g.tokenContext.Init(g)
 	return g
 }
 

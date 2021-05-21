@@ -11,14 +11,27 @@ type ConnEvent interface {
 	Conn() *AttachmentConn
 }
 
+type AbstractConnEvent struct {
+	eventId EventId
+	conn    *AttachmentConn
+}
+
+func (a AbstractConnEvent) EventId() EventId {
+	return a.eventId
+}
+
+func (a AbstractConnEvent) Conn() *AttachmentConn {
+	return a.conn
+}
+
+func NewAbstractConnEvent(eventId EventId, conn *AttachmentConn) AbstractConnEvent {
+	return AbstractConnEvent{eventId: eventId, conn: conn}
+}
+
 type ConnClosed struct {
-	conn *AttachmentConn
+	AbstractConnEvent
 }
 
-func (c ConnClosed) EventId() EventId {
-	return ConnClosedId
-}
-
-func (c ConnClosed) Conn() *AttachmentConn {
-	return c.conn
+func NewConnClosed(conn *AttachmentConn) ConnClosed {
+	return ConnClosed{NewAbstractConnEvent(ConnClosedId, conn)}
 }

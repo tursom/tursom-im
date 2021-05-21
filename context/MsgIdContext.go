@@ -2,6 +2,7 @@ package context
 
 import (
 	"crypto/rand"
+	"github.com/tursom/GoCollections/exceptions"
 	"math"
 	"math/big"
 	"strings"
@@ -25,6 +26,7 @@ func NewMsgIdContext() *MsgIdContext {
 
 	sig, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
+		exceptions.Print(err)
 		return nil
 	}
 

@@ -6,3 +6,4 @@ require mods:
 - go get github.com/mattn/go-sqlite3
 - go get github.com/julienschmidt/httprouter
 - go get github.com/gobwas/ws
+- go get github.com/tursom/GoCollections

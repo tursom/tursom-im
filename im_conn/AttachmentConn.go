@@ -1,11 +1,12 @@
 package im_conn
 
 import (
+	"github.com/tursom/GoCollections/collections"
+	"github.com/tursom/GoCollections/exceptions"
 	"net"
 	"reflect"
 	"sync"
 	"time"
-	"tursom-im/utils"
 )
 
 type AttachmentKey struct {
@@ -29,7 +30,7 @@ type Attachment struct {
 type AttachmentConn struct {
 	conn              *net.Conn
 	attachment        *sync.Map
-	eventListenerList utils.MultipleList
+	eventListenerList collections.MutableList
 }
 
 type InvalidTypeError struct {
@@ -54,15 +55,16 @@ func NewAttachmentConn(conn *net.Conn, attachment *sync.Map) *AttachmentConn {
 	return &AttachmentConn{
 		conn:              conn,
 		attachment:        attachment,
-		eventListenerList: utils.NewLinkedList(),
+		eventListenerList: collections.NewArrayList(),
 	}
 }
 
 func NewSimpleAttachmentConn(conn *net.Conn) *AttachmentConn {
 	var attachment sync.Map
 	return &AttachmentConn{
-		conn:       conn,
-		attachment: &attachment,
+		conn:              conn,
+		attachment:        &attachment,
+		eventListenerList: collections.NewArrayList(),
 	}
 }
 
@@ -74,18 +76,24 @@ func (a *AttachmentConn) Get(key *AttachmentKey) *Attachment {
 }
 
 func (a *AttachmentConn) notify(event ConnEvent) {
-	iterator := a.eventListenerList.Iterator()
-	for iterator.HasNext() {
-		next := iterator.Next()
-		switch next.(type) {
+	err := collections.Loop(a.eventListenerList, func(element interface{}) error {
+		switch element.(type) {
 		case func(ConnEvent):
-			f := next.(func(ConnEvent))
-			func() {
-				defer utils.Recover(nil)
-				f(event)
-			}()
+			_, _ = exceptions.Try(func() (ret interface{}, err error) {
+				element.(func(ConnEvent))(event)
+				return
+			}, func(panic interface{}) (ret interface{}, err error) {
+				exceptions.NewRuntimeException(
+					panic,
+					"an exception caused on call ConnEvent listener:",
+					true, panic,
+				).PrintStackTrace()
+				return
+			})
 		}
-	}
+		return nil
+	})
+	exceptions.Print(err)
 }
 
 func (a *Attachment) Get() interface{} {
@@ -105,13 +113,13 @@ func (a *Attachment) Set(value interface{}) error {
 
 func (a *AttachmentConn) AddEventListener(f func(event ConnEvent)) {
 	if f != nil {
-		a.eventListenerList.Append(f)
+		a.eventListenerList.Add(f)
 	}
 }
 
 func (a *AttachmentConn) RemoveEventListener(f func(ConnEvent)) {
 	if f != nil {
-		a.eventListenerList.Remove(f)
+		_ = a.eventListenerList.Remove(f)
 	}
 }
 
@@ -124,7 +132,7 @@ func (a *AttachmentConn) Write(b []byte) (n int, err error) {
 }
 
 func (a *AttachmentConn) Close() error {
-	a.notify(ConnClosed{a})
+	a.notify(NewConnClosed(a))
 	return (*a.conn).Close()
 }
 

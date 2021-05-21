@@ -6,10 +6,11 @@ import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/julienschmidt/httprouter"
+	"github.com/tursom/GoCollections/exceptions"
 	"net"
 	"net/http"
-	"os"
 	"tursom-im/context"
+	"tursom-im/exception"
 	"tursom-im/im_conn"
 	"tursom-im/tursom_im_protobuf"
 	"tursom-im/utils"
@@ -32,7 +33,7 @@ func (c *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Ro
 func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Package(err).PrintStackTrace()
 		return
 	}
 	go c.Handle(conn)
@@ -43,47 +44,61 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	defer conn.Close()
 
 	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
+	watchDog := utils.NewWatchDog(func() bool {
+		_ = conn.Close()
+		return true
+	})
 
 	for {
-		err := c.loop(attachmentConn)
+		_, err := exceptions.Try(func() (interface{}, error) {
+			//goland:noinspection GoUnhandledErrorResult
+			//defer conn.Close()
+
+			msg, op, err := wsutil.ReadClientData(conn)
+			if err != nil {
+				return nil, exceptions.Package(err)
+			}
+			watchDog.Feed()
+
+			if !op.IsData() {
+				return nil, nil
+			}
+
+			switch op {
+			case ws.OpBinary:
+				imMsg := tursom_im_protobuf.ImMsg{}
+				err = proto.Unmarshal(msg, &imMsg)
+				if err != nil {
+					return nil, exceptions.Package(err)
+				}
+				c.handleBinaryMsg(attachmentConn, &imMsg)
+			case ws.OpText:
+				exception.NewUnsupportedException("could not handle text message").PrintStackTrace()
+			default:
+				exception.NewUnsupportedException("could not handle unknown message").PrintStackTrace()
+			}
+			return nil, nil
+		}, func(i interface{}) (interface{}, error) {
+			switch i.(type) {
+			case error:
+				return nil, exceptions.NewRuntimeException(
+					i,
+					"an panic caused on handle WebSocket message:",
+					true, i,
+				)
+			default:
+				return nil, exceptions.NewRuntimeException(
+					i,
+					"an panic caused on handle WebSocket message:",
+					true, nil,
+				)
+			}
+		})
 		if err != nil {
-			fmt.Println(err)
+			exceptions.Print(err)
 			return
 		}
 	}
-}
-
-func (c *WebSocketHandler) loop(conn *im_conn.AttachmentConn) (err error) {
-	//goland:noinspection GoUnhandledErrorResult
-	defer utils.Recover(func() {
-		fmt.Fprintln(os.Stderr, "an panic caused on handle WebSocket message")
-		conn.Close()
-	})
-
-	msg, op, err := wsutil.ReadClientData(conn)
-	if err != nil {
-		return err
-	}
-
-	if !op.IsData() {
-		return nil
-	}
-
-	switch op {
-	case ws.OpBinary:
-		imMsg := tursom_im_protobuf.ImMsg{}
-		err = proto.Unmarshal(msg, &imMsg)
-		if err != nil {
-			return err
-		}
-		c.handleBinaryMsg(conn, &imMsg)
-	case ws.OpText:
-		panic("could not handle text message")
-	default:
-		panic("could not handle unknown message")
-	}
-
-	return nil
 }
 
 func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
@@ -94,7 +109,7 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		if closeConnection {
 			err := conn.Close()
 			if err != nil {
-				fmt.Println(err)
+				exceptions.Print(err)
 			}
 		}
 	}()
@@ -114,12 +129,12 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Print(err)
 		return
 	}
 	err = wsutil.WriteServerBinary(conn, bytes)
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Print(err)
 	}
 }
 
@@ -158,8 +173,8 @@ func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *
 			Content:  sendMsgRequest.Content,
 		}},
 	}
-	receiverConn.WriteChatMsg(imMsg, nil)
-	currentConn.WriteChatMsg(imMsg, func(c *im_conn.AttachmentConn) bool {
+	_ = receiverConn.WriteChatMsg(imMsg, nil)
+	_ = currentConn.WriteChatMsg(imMsg, func(c *im_conn.AttachmentConn) bool {
 		return conn != c
 	})
 
@@ -173,7 +188,7 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 
 	token, err := c.globalContext.TokenContext().Parse(msg.GetLoginRequest().Token)
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Print(err)
 		return
 	}
 
@@ -181,12 +196,12 @@ func (c *WebSocketHandler) handleBinaryLogin(conn *im_conn.AttachmentConn, msg *
 	userTokenAttr := conn.Get(c.globalContext.AttrContext().UserTokenAttrKey())
 	err = userIdAttr.Set(token.Uid)
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Print(err)
 		return
 	}
 	err = userTokenAttr.Set(token)
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Print(err)
 		return
 	}
 

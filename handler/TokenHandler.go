@@ -2,8 +2,8 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/tursom/GoCollections/exceptions"
 	"net/http"
 	"tursom-im/context"
 )
@@ -40,6 +40,7 @@ func (t *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ http
 	}
 	token, err := t.globalContext.TokenContext().FlushToken(uid[0])
 	if err != nil {
+		err = exceptions.Package(err)
 		return
 	}
 	if len(token) == 0 {
@@ -49,6 +50,7 @@ func (t *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ http
 
 	_, err = w.Write([]byte(token))
 	if err != nil {
+		err = exceptions.Package(err)
 		return
 	}
 }
@@ -65,27 +67,30 @@ func (t *TokenHandler) NewUser(w http.ResponseWriter, r *http.Request, _ httprou
 
 	user, err := t.globalContext.SqlContext().GetUserTableContext().CreateUser()
 	if err != nil {
+		err = exceptions.Package(err)
 		return
 	}
 
 	userBytes, err := json.Marshal(user)
 	if err != nil {
+		err = exceptions.Package(err)
 		return
 	}
 
 	_, err = w.Write(userBytes)
 	if err != nil {
+		err = exceptions.Package(err)
 		return
 	}
 }
 
 func handleError(w http.ResponseWriter, err error) {
 	if err != nil {
-		fmt.Println(err)
+		exceptions.Print(err)
 		w.WriteHeader(500)
 		_, err = w.Write([]byte(err.Error()))
 		if err != nil {
-			fmt.Println(err)
+			exceptions.Print(err)
 		}
 	}
 }

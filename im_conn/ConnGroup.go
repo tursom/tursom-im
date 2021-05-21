@@ -1,9 +1,9 @@
 package im_conn
 
 import (
-	"fmt"
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
+	"github.com/tursom/GoCollections/exceptions"
 	"tursom-im/tursom_im_protobuf"
 )
 
@@ -45,11 +45,8 @@ func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) 
 		if filter == nil || filter(conn) {
 			err := wsutil.WriteServerBinary(conn, bytes)
 			if err != nil {
-				fmt.Println(err)
-				err = conn.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
+				exceptions.Print(err)
+				exceptions.Print(conn.Close())
 				g.Remove(conn)
 			}
 		}
@@ -62,11 +59,9 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 		if filter == nil || filter(conn) {
 			err := wsutil.WriteServerText(conn, bytes)
 			if err != nil {
-				fmt.Println(err)
+				exceptions.Print(err)
 				err = conn.Close()
-				if err != nil {
-					fmt.Println(err)
-				}
+				exceptions.Print(conn.Close())
 				g.Remove(conn)
 			}
 		}
@@ -76,7 +71,7 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*AttachmentConn) bool) error {
 	bytes, err := proto.Marshal(msg)
 	if err != nil {
-		return err
+		return exceptions.Package(err)
 	}
 	g.WriteBinaryFrame(bytes, filter)
 	return nil
