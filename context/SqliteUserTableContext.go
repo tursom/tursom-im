@@ -24,7 +24,7 @@ func (s *SqliteUserTableContext) Init(ctx *GlobalContext) {
 	s.msgIdContext = ctx.msgIdContext
 }
 
-func (s *SqliteUserTableContext) CreateTable() error {
+func (s *SqliteUserTableContext) CreateTable() exceptions.Exception {
 	_, err := s.db.Exec("create table if not exists user(" +
 		"	id char(32) primary key not null," +
 		"	token text" +
@@ -32,7 +32,7 @@ func (s *SqliteUserTableContext) CreateTable() error {
 	return exceptions.Package(err)
 }
 
-func (s *SqliteUserTableContext) CreateUser() (*User, error) {
+func (s *SqliteUserTableContext) CreateUser() (*User, exceptions.Exception) {
 	newUserId := s.msgIdContext.NewMsgIdStr()
 	_, err := s.db.Exec("insert into user (id,token) values (?,?)", newUserId, "[]")
 	if err != nil {
@@ -41,7 +41,7 @@ func (s *SqliteUserTableContext) CreateUser() (*User, error) {
 	return s.FindById(newUserId)
 }
 
-func (s *SqliteUserTableContext) CreateUserWithToken(uid string, token string) (*User, error) {
+func (s *SqliteUserTableContext) CreateUserWithToken(uid string, token string) (*User, exceptions.Exception) {
 	_, err := s.db.Exec("insert into user (id,token) values (?,?)", uid, "[\""+token+"\"]")
 	if err != nil {
 		return nil, exceptions.Package(err)
@@ -49,7 +49,7 @@ func (s *SqliteUserTableContext) CreateUserWithToken(uid string, token string) (
 	return s.FindById(uid)
 }
 
-func (s *SqliteUserTableContext) FindById(uid string) (*User, error) {
+func (s *SqliteUserTableContext) FindById(uid string) (*User, exceptions.Exception) {
 	rows, err := s.db.Query("select id,token from user where id=?", uid)
 	if err != nil {
 		return nil, exceptions.Package(err)
@@ -74,7 +74,7 @@ func (s *SqliteUserTableContext) FindById(uid string) (*User, error) {
 	return user, nil
 }
 
-func (s *SqliteUserTableContext) GetToken(uid string) (*[]string, error) {
+func (s *SqliteUserTableContext) GetToken(uid string) (*[]string, exceptions.Exception) {
 	user, err := s.FindById(uid)
 	if user == nil || err != nil {
 		return nil, exceptions.Package(err)
@@ -82,13 +82,13 @@ func (s *SqliteUserTableContext) GetToken(uid string) (*[]string, error) {
 	return &user.token, nil
 }
 
-func (s *SqliteUserTableContext) PushToken(uid string, token string) error {
+func (s *SqliteUserTableContext) PushToken(uid string, token string) exceptions.Exception {
 	tokenExist, err := s.GetToken(uid)
 	if err != nil {
 		return err
 	}
 	if tokenExist == nil {
-		return &UserNotFoundError{uid}
+		return exception.NewUserNotFoundException(uid)
 	}
 
 	newToken := []string{token}
@@ -96,13 +96,13 @@ func (s *SqliteUserTableContext) PushToken(uid string, token string) error {
 		newToken = append(newToken, (*tokenExist)[i])
 	}
 
-	tokenBytes, err := json.Marshal(newToken)
-	if err != nil {
-		return exceptions.Package(err)
+	tokenBytes, err2 := json.Marshal(newToken)
+	if err2 != nil {
+		return exceptions.Package(err2)
 	}
 
-	_, err = s.db.Exec("update user set token=? where id = ?", string(tokenBytes), uid)
-	return exceptions.Package(err)
+	_, err2 = s.db.Exec("update user set token=? where id = ?", string(tokenBytes), uid)
+	return exceptions.Package(err2)
 }
 
 func NewSqliteUserTableContext(db *sql.DB) *SqliteUserTableContext {

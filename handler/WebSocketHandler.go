@@ -50,7 +50,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	})
 
 	for {
-		_, err := exceptions.Try(func() (interface{}, error) {
+		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
 			//goland:noinspection GoUnhandledErrorResult
 			//defer conn.Close()
 
@@ -78,7 +78,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 				exception.NewUnsupportedException("could not handle unknown message").PrintStackTrace()
 			}
 			return nil, nil
-		}, func(i interface{}) (interface{}, error) {
+		}, func(i interface{}) (interface{}, exceptions.Exception) {
 			switch i.(type) {
 			case error:
 				return nil, exceptions.NewRuntimeException(

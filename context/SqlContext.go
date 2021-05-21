@@ -1,6 +1,9 @@
 package context
 
-import "database/sql"
+import (
+	"database/sql"
+	"github.com/tursom/GoCollections/exceptions"
+)
 
 type SqlContext interface {
 	GetDB() *sql.DB
@@ -9,14 +12,14 @@ type SqlContext interface {
 }
 
 type Table interface {
-	CreateTable() error
+	CreateTable() exceptions.Exception
 }
 
 type UserTableContext interface {
-	CreateUser() (*User, error)
-	FindById(uid string) (*User, error)
-	GetToken(uid string) (*[]string, error)
-	PushToken(uid string, token string) error
+	CreateUser() (*User, exceptions.Exception)
+	FindById(uid string) (*User, exceptions.Exception)
+	GetToken(uid string) (*[]string, exceptions.Exception)
+	PushToken(uid string, token string) exceptions.Exception
 }
 
 type User struct {

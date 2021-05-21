@@ -68,7 +68,7 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 	}
 }
 
-func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*AttachmentConn) bool) error {
+func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*AttachmentConn) bool) exceptions.Exception {
 	bytes, err := proto.Marshal(msg)
 	if err != nil {
 		return exceptions.Package(err)

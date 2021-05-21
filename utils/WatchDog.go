@@ -22,17 +22,17 @@ func InitWatchDog() {
 			start := time.Now().UnixNano()
 			watchDogMutex.Lock()
 			//fmt.Println("watch dog loop", watchDogList)
-			_ = collections.LoopMutable(watchDogList, func(element interface{}, iterator collections.MutableIterator) (err error) {
+			_ = collections.LoopMutable(watchDogList, func(element interface{}, iterator collections.MutableIterator) (err exceptions.Exception) {
 				watchDog := element.(*WatchDog)
 				watchDog.feeding--
 				if watchDog.feeding == 0 {
 					watchDog.feeding = watchDog.life
-					_, _ = exceptions.Try(func() (ret interface{}, err error) {
+					_, _ = exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
 						if watchDog.callback() {
 							_ = iterator.Remove()
 						}
 						return
-					}, func(panic interface{}) (ret interface{}, err error) {
+					}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
 						exceptions.PackageAny(panic).PrintStackTrace()
 						_ = iterator.Remove()
 						return

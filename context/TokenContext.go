@@ -41,7 +41,7 @@ func (c *TokenContext) Init(ctx *GlobalContext) {
 	c.sqlContext = ctx.sqlContext
 }
 
-func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, error) {
+func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, exceptions.Exception) {
 	tokenBytes, err := b64.StdEncoding.DecodeString(tokenStr)
 	if err != nil {
 		return nil, exceptions.Package(err)
@@ -68,7 +68,7 @@ func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, erro
 	return nil, exception.NewTokenSigException(fmt.Sprintf("token \"%s\" for user \"%s\" have wrong sig", tokenStr, token.Uid))
 }
 
-func (c *TokenContext) FlushToken(uid string) (string, error) {
+func (c *TokenContext) FlushToken(uid string) (string, exceptions.Exception) {
 	sig, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
 	if err != nil {
 		return "", exceptions.Package(err)

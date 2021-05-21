@@ -1,12 +1,14 @@
 package im_conn
 
 import (
+	"fmt"
 	"github.com/tursom/GoCollections/collections"
 	"github.com/tursom/GoCollections/exceptions"
 	"net"
 	"reflect"
 	"sync"
 	"time"
+	"tursom-im/exception"
 )
 
 type AttachmentKey struct {
@@ -76,13 +78,13 @@ func (a *AttachmentConn) Get(key *AttachmentKey) *Attachment {
 }
 
 func (a *AttachmentConn) notify(event ConnEvent) {
-	err := collections.Loop(a.eventListenerList, func(element interface{}) error {
+	err := collections.Loop(a.eventListenerList, func(element interface{}) exceptions.Exception {
 		switch element.(type) {
 		case func(ConnEvent):
-			_, _ = exceptions.Try(func() (ret interface{}, err error) {
+			_, _ = exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
 				element.(func(ConnEvent))(event)
 				return
-			}, func(panic interface{}) (ret interface{}, err error) {
+			}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
 				exceptions.NewRuntimeException(
 					panic,
 					"an exception caused on call ConnEvent listener:",
@@ -101,13 +103,13 @@ func (a *Attachment) Get() interface{} {
 	return load
 }
 
-func (a *Attachment) Set(value interface{}) error {
+func (a *Attachment) Set(value interface{}) exceptions.Exception {
 	valueType := reflect.TypeOf(value)
 	if valueType.AssignableTo(a.key.t) {
 		a.attachment.Store(a.key.name, value)
 		return nil
 	} else {
-		return &InvalidTypeError{}
+		return exception.NewInvalidTypeException(fmt.Sprintf("value of type %s cannot cast to %s", valueType, a.key.t))
 	}
 }
 
@@ -124,16 +126,18 @@ func (a *AttachmentConn) RemoveEventListener(f func(ConnEvent)) {
 }
 
 func (a *AttachmentConn) Read(b []byte) (n int, err error) {
-	return (*a.conn).Read(b)
+	read, err := (*a.conn).Read(b)
+	return read, exceptions.Package(err)
 }
 
 func (a *AttachmentConn) Write(b []byte) (n int, err error) {
-	return (*a.conn).Write(b)
+	write, err := (*a.conn).Write(b)
+	return write, exceptions.Package(err)
 }
 
 func (a *AttachmentConn) Close() error {
 	a.notify(NewConnClosed(a))
-	return (*a.conn).Close()
+	return exceptions.Package((*a.conn).Close())
 }
 
 func (a *AttachmentConn) LocalAddr() net.Addr {
@@ -145,13 +149,13 @@ func (a *AttachmentConn) RemoteAddr() net.Addr {
 }
 
 func (a *AttachmentConn) SetDeadline(t time.Time) error {
-	return (*a.conn).SetDeadline(t)
+	return exceptions.Package((*a.conn).SetDeadline(t))
 }
 
 func (a *AttachmentConn) SetReadDeadline(t time.Time) error {
-	return (*a.conn).SetReadDeadline(t)
+	return exceptions.Package((*a.conn).SetReadDeadline(t))
 }
 
 func (a *AttachmentConn) SetWriteDeadline(t time.Time) error {
-	return (*a.conn).SetWriteDeadline(t)
+	return exceptions.Package((*a.conn).SetWriteDeadline(t))
 }
