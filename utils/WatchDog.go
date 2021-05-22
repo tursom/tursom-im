@@ -3,7 +3,6 @@ package utils
 import (
 	"github.com/tursom/GoCollections/collections"
 	"github.com/tursom/GoCollections/exceptions"
-	"sync"
 	"time"
 )
 
@@ -13,14 +12,12 @@ type WatchDog struct {
 	callback func() bool
 }
 
-var watchDogMutex = sync.Mutex{}
-var watchDogList collections.MutableList = collections.NewLinkedList()
+var watchDogList = collections.NewConcurrentLinkedStack()
 
 func InitWatchDog() {
 	go func() {
 		for {
 			start := time.Now().UnixNano()
-			watchDogMutex.Lock()
 			//fmt.Println("watch dog loop", watchDogList)
 			_ = collections.LoopMutable(watchDogList, func(element interface{}, iterator collections.MutableIterator) (err exceptions.Exception) {
 				watchDog := element.(*WatchDog)
@@ -40,7 +37,6 @@ func InitWatchDog() {
 				}
 				return
 			})
-			watchDogMutex.Unlock()
 			end := time.Now().UnixNano()
 			delay := time.Second - time.Nanosecond*time.Duration(end-start)
 			if delay > 0 {
@@ -52,9 +48,11 @@ func InitWatchDog() {
 
 func NewWatchDog(life uint32, callback func() bool) *WatchDog {
 	w := &WatchDog{life, life, callback}
-	watchDogMutex.Lock()
-	watchDogList.Add(w)
-	watchDogMutex.Unlock()
+	err := watchDogList.Push(w)
+	if err != nil {
+		err.PrintStackTrace()
+		return nil
+	}
 	return w
 }
 

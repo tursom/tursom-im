@@ -48,12 +48,13 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 		_ = conn.Close()
 		return true
 	})
+	if watchDog == nil {
+		exceptions.PackageAny("watch dog register failed").PrintStackTrace()
+		return
+	}
 
 	for {
 		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
-			//goland:noinspection GoUnhandledErrorResult
-			//defer conn.Close()
-
 			msg, op, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				return nil, exceptions.Package(err)
@@ -141,8 +142,7 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
 	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string)
 	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
-	//goland:noinspection GoUnhandledErrorResult
-	currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
+	_ = currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
 		return conn != c
 	})
 }
