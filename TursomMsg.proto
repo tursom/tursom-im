@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/protobuf/any.proto";
 option optimize_for = SPEED;
 
 package cn.tursom.im.protobuf;
@@ -43,6 +44,7 @@ enum FailType {
 message MsgContent {
   oneof content {
     string msg = 1;
+    google.protobuf.Any ext = 2;
   }
 }
 
