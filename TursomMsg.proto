@@ -17,6 +17,8 @@ message ImMsg {
     SendMsgRequest sendMsgRequest = 5;
     SendMsgResponse sendMsgResponse = 6;
     string heartBeat = 8;
+    AllocateNodeRequest allocateNodeRequest = 9;
+    AllocateNodeResponse allocateNodeResponse = 10;
   }
 }
 
@@ -66,4 +68,15 @@ message ChatMsg {
   string receiver = 1;
   string sender = 2;
   MsgContent content = 3;
+}
+
+message AllocateNodeRequest {
+  string reqId = 1;
+  int32 mask = 2;
+  string currentNodeName = 3;
+}
+
+message AllocateNodeResponse {
+  string reqId = 1;
+  int32 node = 2;
 }

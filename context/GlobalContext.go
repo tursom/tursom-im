@@ -11,6 +11,7 @@ type GlobalContext struct {
 	msgIdContext    *MsgIdContext
 	cfg             *config.Config
 	sqlContext      SqlContext
+	connNodeContext *ConnNodeContext
 }
 
 func NewGlobalContext(config *config.Config) *GlobalContext {
@@ -39,6 +40,8 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 		return nil
 	}
 
+	connNodeContext := NewConnNodeContext()
+
 	g := &GlobalContext{
 		tokenContext:    tokenContext,
 		attrContext:     attrContext,
@@ -46,6 +49,7 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 		msgIdContext:    msgIdContext,
 		cfg:             config,
 		sqlContext:      sqlContext,
+		connNodeContext: connNodeContext,
 	}
 	g.tokenContext.Init(g)
 	g.userConnContext.Init(g)

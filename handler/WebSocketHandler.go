@@ -127,6 +127,8 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		closeConnection = !loginResult.LoginResult.Success
 	case *tursom_im_protobuf.ImMsg_HeartBeat:
 		imMsg.Content = msg.Content
+	case *tursom_im_protobuf.ImMsg_AllocateNodeRequest:
+		imMsg.Content = c.handleAllocateNode(conn, msg)
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {
@@ -147,7 +149,24 @@ func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *turs
 	})
 }
 
-func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) (response *tursom_im_protobuf.ImMsg_SendMsgResponse, msgId string) {
+func (c *WebSocketHandler) handleAllocateNode(
+	conn *im_conn.AttachmentConn,
+	msg *tursom_im_protobuf.ImMsg,
+) (
+	response *tursom_im_protobuf.ImMsg_AllocateNodeResponse,
+) {
+	response = &tursom_im_protobuf.ImMsg_AllocateNodeResponse{}
+
+	return
+}
+
+func (c *WebSocketHandler) handleSendChatMsg(
+	conn *im_conn.AttachmentConn,
+	msg *tursom_im_protobuf.ImMsg,
+) (
+	response *tursom_im_protobuf.ImMsg_SendMsgResponse,
+	msgId string,
+) {
 	response = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: &tursom_im_protobuf.SendMsgResponse{}}
 	msgId = c.globalContext.MsgIdContext().NewMsgIdStr()
 	sendMsgRequest := msg.GetSendMsgRequest()
