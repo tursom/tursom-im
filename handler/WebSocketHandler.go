@@ -165,6 +165,7 @@ func (c *WebSocketHandler) handleSendChatMsg(conn *im_conn.AttachmentConn, msg *
 		return
 	}
 
+	response.SendMsgResponse.Success = true
 	imMsg := &tursom_im_protobuf.ImMsg{
 		MsgId: msgId,
 		Content: &tursom_im_protobuf.ImMsg_ChatMsg{ChatMsg: &tursom_im_protobuf.ChatMsg{
