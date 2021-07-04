@@ -34,8 +34,8 @@ func NewConfig() *Config {
 // CheckAdmin
 // @return appId null if failed
 func (c *AdminConfig) CheckAdmin(r *http.Request) *string {
-	appId := r.Header["AppId"][0]
-	appToken := r.Header["AppToken"][0]
+	appId := r.Header["App-Id"][0]
+	appToken := r.Header["App-Token"][0]
 	if appId != c.Id || appToken != c.Password {
 		return nil
 	}
