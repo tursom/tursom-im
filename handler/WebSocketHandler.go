@@ -43,7 +43,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	//goland:noinspection GoUnhandledErrorResult
 	defer conn.Close()
 
-	attachmentConn := im_conn.NewSimpleAttachmentConn(&conn)
+	attachmentConn := im_conn.NewSimpleAttachmentConn(conn)
 	watchDog := utils.NewWatchDog(60, func() bool {
 		_ = conn.Close()
 		return true

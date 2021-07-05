@@ -30,7 +30,7 @@ type Attachment struct {
 }
 
 type AttachmentConn struct {
-	conn              *net.Conn
+	conn              net.Conn
 	attachment        *sync.Map
 	eventListenerList collections.MutableList
 }
@@ -49,7 +49,7 @@ func NewAttachmentKey(name string, t reflect.Type) AttachmentKey {
 	}
 }
 
-func NewAttachmentConn(conn *net.Conn, attachment *sync.Map) *AttachmentConn {
+func NewAttachmentConn(conn net.Conn, attachment *sync.Map) *AttachmentConn {
 	if attachment != nil {
 		var newMap sync.Map
 		attachment = &newMap
@@ -61,7 +61,7 @@ func NewAttachmentConn(conn *net.Conn, attachment *sync.Map) *AttachmentConn {
 	}
 }
 
-func NewSimpleAttachmentConn(conn *net.Conn) *AttachmentConn {
+func NewSimpleAttachmentConn(conn net.Conn) *AttachmentConn {
 	var attachment sync.Map
 	return &AttachmentConn{
 		conn:              conn,
@@ -126,36 +126,36 @@ func (a *AttachmentConn) RemoveEventListener(f func(ConnEvent)) {
 }
 
 func (a *AttachmentConn) Read(b []byte) (n int, err error) {
-	read, err := (*a.conn).Read(b)
+	read, err := a.conn.Read(b)
 	return read, exceptions.Package(err)
 }
 
 func (a *AttachmentConn) Write(b []byte) (n int, err error) {
-	write, err := (*a.conn).Write(b)
+	write, err := a.conn.Write(b)
 	return write, exceptions.Package(err)
 }
 
 func (a *AttachmentConn) Close() error {
 	a.notify(NewConnClosed(a))
-	return exceptions.Package((*a.conn).Close())
+	return exceptions.Package(a.conn.Close())
 }
 
 func (a *AttachmentConn) LocalAddr() net.Addr {
-	return (*a.conn).LocalAddr()
+	return a.conn.LocalAddr()
 }
 
 func (a *AttachmentConn) RemoteAddr() net.Addr {
-	return (*a.conn).RemoteAddr()
+	return a.conn.RemoteAddr()
 }
 
 func (a *AttachmentConn) SetDeadline(t time.Time) error {
-	return exceptions.Package((*a.conn).SetDeadline(t))
+	return exceptions.Package(a.conn.SetDeadline(t))
 }
 
 func (a *AttachmentConn) SetReadDeadline(t time.Time) error {
-	return exceptions.Package((*a.conn).SetReadDeadline(t))
+	return exceptions.Package(a.conn.SetReadDeadline(t))
 }
 
 func (a *AttachmentConn) SetWriteDeadline(t time.Time) error {
-	return exceptions.Package((*a.conn).SetWriteDeadline(t))
+	return exceptions.Package(a.conn.SetWriteDeadline(t))
 }
