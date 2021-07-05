@@ -129,6 +129,8 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		imMsg.Content = msg.Content
 	case *tursom_im_protobuf.ImMsg_AllocateNodeRequest:
 		imMsg.Content = c.handleAllocateNode(conn, msg)
+	case *tursom_im_protobuf.ImMsg_SendBroadcastRequest:
+		imMsg.Content = c.handleSendBroadcast(conn, msg)
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {
@@ -152,12 +154,50 @@ func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *turs
 func (c *WebSocketHandler) handleAllocateNode(
 	conn *im_conn.AttachmentConn,
 	msg *tursom_im_protobuf.ImMsg,
-) (
-	response *tursom_im_protobuf.ImMsg_AllocateNodeResponse,
-) {
-	response = &tursom_im_protobuf.ImMsg_AllocateNodeResponse{}
+) *tursom_im_protobuf.ImMsg_AllocateNodeResponse {
+	allocateNodeResponse := &tursom_im_protobuf.AllocateNodeResponse{
+		ReqId: msg.GetAllocateNodeRequest().ReqId,
+	}
 
-	return
+	allocateNodeResponse.Node = c.globalContext.ConnNodeContext().Allocate(conn)
+
+	return &tursom_im_protobuf.ImMsg_AllocateNodeResponse{
+		AllocateNodeResponse: allocateNodeResponse,
+	}
+}
+
+func (c *WebSocketHandler) handleSendBroadcast(
+	conn *im_conn.AttachmentConn,
+	msg *tursom_im_protobuf.ImMsg,
+) *tursom_im_protobuf.ImMsg_SendBroadcastResponse {
+	sendBroadcastRequest := msg.GetSendBroadcastRequest()
+	response := &tursom_im_protobuf.SendBroadcastResponse{
+		ReqId: sendBroadcastRequest.ReqId,
+	}
+
+	imMsg := &tursom_im_protobuf.ImMsg{
+		MsgId: c.globalContext.MsgIdContext().NewMsgIdStr(),
+		Content: &tursom_im_protobuf.ImMsg_Broadcast{Broadcast: &tursom_im_protobuf.Broadcast{
+			ReqId:   sendBroadcastRequest.ReqId,
+			Channel: sendBroadcastRequest.Channel,
+			Content: sendBroadcastRequest.Content,
+		}},
+	}
+	bytes, err := proto.Marshal(imMsg)
+	if err != nil {
+		exceptions.Print(err)
+	} else {
+		response.ReceiverCount = c.globalContext.BroadcastContext().Send(
+			sendBroadcastRequest.Channel,
+			bytes,
+			func(c *im_conn.AttachmentConn) bool {
+				return c != conn
+			},
+		)
+	}
+	return &tursom_im_protobuf.ImMsg_SendBroadcastResponse{
+		SendBroadcastResponse: response,
+	}
 }
 
 func (c *WebSocketHandler) handleSendChatMsg(

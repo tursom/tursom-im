@@ -21,6 +21,10 @@ func NewConnGroup() *ConnGroup {
 	}
 }
 
+func (g *ConnGroup) Size() int32 {
+	return int32(len(g.connList))
+}
+
 func (g *ConnGroup) Add(conn *AttachmentConn) {
 	if conn == nil {
 		return
@@ -40,7 +44,8 @@ func (g *ConnGroup) Remove(conn *AttachmentConn) {
 	delete(g.connList, conn)
 }
 
-func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) bool) {
+func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) bool) int32 {
+	var sent int32 = 0
 	for conn := range g.connList {
 		if filter == nil || filter(conn) {
 			err := wsutil.WriteServerBinary(conn, bytes)
@@ -48,12 +53,16 @@ func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) 
 				exceptions.Print(err)
 				exceptions.Print(conn.Close())
 				g.Remove(conn)
+			} else {
+				sent++
 			}
 		}
 	}
+	return sent
 }
 
-func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) bool) {
+func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) bool) int32 {
+	var sent int32 = 0
 	bytes := []byte(text)
 	for conn := range g.connList {
 		if filter == nil || filter(conn) {
@@ -63,9 +72,12 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 				err = conn.Close()
 				exceptions.Print(conn.Close())
 				g.Remove(conn)
+			} else {
+				sent++
 			}
 		}
 	}
+	return sent
 }
 
 func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*AttachmentConn) bool) exceptions.Exception {

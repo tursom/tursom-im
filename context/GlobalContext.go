@@ -5,13 +5,14 @@ import (
 )
 
 type GlobalContext struct {
-	tokenContext    *TokenContext
-	attrContext     *AttrContext
-	userConnContext *UserConnContext
-	msgIdContext    *MsgIdContext
-	cfg             *config.Config
-	sqlContext      SqlContext
-	connNodeContext *ConnNodeContext
+	tokenContext     *TokenContext
+	attrContext      *AttrContext
+	userConnContext  *UserConnContext
+	msgIdContext     *MsgIdContext
+	cfg              *config.Config
+	sqlContext       SqlContext
+	connNodeContext  *ConnNodeContext
+	broadcastContext *BroadcastContext
 }
 
 func NewGlobalContext(config *config.Config) *GlobalContext {
@@ -40,20 +41,30 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 		return nil
 	}
 
-	connNodeContext := NewConnNodeContext()
+	connNodeContext := NewConnNodeContext(config.Node.NodeMax)
+	if connNodeContext == nil {
+		return nil
+	}
+
+	broadcastContext := NewBroadcastContext()
+	if broadcastContext == nil {
+		return nil
+	}
 
 	g := &GlobalContext{
-		tokenContext:    tokenContext,
-		attrContext:     attrContext,
-		userConnContext: userConnContext,
-		msgIdContext:    msgIdContext,
-		cfg:             config,
-		sqlContext:      sqlContext,
-		connNodeContext: connNodeContext,
+		tokenContext:     tokenContext,
+		attrContext:      attrContext,
+		userConnContext:  userConnContext,
+		msgIdContext:     msgIdContext,
+		cfg:              config,
+		sqlContext:       sqlContext,
+		connNodeContext:  connNodeContext,
+		broadcastContext: broadcastContext,
 	}
 	g.tokenContext.Init(g)
 	g.userConnContext.Init(g)
 	g.sqlContext.Init(g)
+	connNodeContext.Init(g)
 	return g
 }
 
@@ -83,4 +94,12 @@ func (g *GlobalContext) Cfg() *config.Config {
 
 func (g *GlobalContext) SqlContext() SqlContext {
 	return g.sqlContext
+}
+
+func (g *GlobalContext) ConnNodeContext() *ConnNodeContext {
+	return g.connNodeContext
+}
+
+func (g *GlobalContext) BroadcastContext() *BroadcastContext {
+	return g.broadcastContext
 }

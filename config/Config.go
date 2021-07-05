@@ -6,6 +6,7 @@ type Config struct {
 	Admin  AdminConfig  `yaml:"admin"`
 	Server ServerConfig `yaml:"server"`
 	SSL    SSL          `yaml:"ssl"`
+	Node   NodeConfig   `yaml:"node"`
 }
 
 type AdminConfig struct {
@@ -23,11 +24,16 @@ type SSL struct {
 	Enable bool   `yaml:"enable"`
 }
 
+type NodeConfig struct {
+	NodeMax int32 `yaml:"nodeMax"`
+}
+
 func NewConfig() *Config {
 	return &Config{
 		Admin:  AdminConfig{},
 		Server: ServerConfig{Port: 12345},
 		SSL:    SSL{Enable: false},
+		Node:   NodeConfig{NodeMax: 4096},
 	}
 }
 

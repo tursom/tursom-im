@@ -12,7 +12,7 @@ type WatchDog struct {
 	callback func() bool
 }
 
-var watchDogList = collections.NewConcurrentLinkedStack()
+var watchDogList = collections.NewConcurrentLinkedQueue()
 
 func InitWatchDog() {
 	go func() {

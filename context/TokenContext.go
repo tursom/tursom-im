@@ -1,36 +1,17 @@
 package context
 
 import (
-	"crypto/rand"
 	b64 "encoding/base64"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/tursom/GoCollections/exceptions"
-	"math"
-	"math/big"
+	"math/rand"
 	"tursom-im/exception"
 	"tursom-im/tursom_im_protobuf"
 )
 
 type TokenContext struct {
 	sqlContext SqlContext
-}
-
-type TokenSigError struct {
-	token string
-	uid   string
-}
-
-func (t *TokenSigError) Error() string {
-	return "token \"" + t.token + "\" for user \"" + t.uid + "\" have wrong sig"
-}
-
-type TokenParseError struct {
-	msg string
-}
-
-func (t *TokenParseError) Error() string {
-	return t.msg
 }
 
 func NewTokenContext() *TokenContext {
@@ -65,17 +46,18 @@ func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, exce
 			return &token, nil
 		}
 	}
-	return nil, exception.NewTokenSigException(fmt.Sprintf("token \"%s\" for user \"%s\" have wrong sig", tokenStr, token.Uid))
+	return nil, exception.NewTokenSigException(fmt.Sprintf(
+		"token \"%s\" for user \"%s\" have wrong sig",
+		tokenStr,
+		token.Uid,
+	))
 }
 
 func (c *TokenContext) FlushToken(uid string) (string, exceptions.Exception) {
-	sig, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		return "", exceptions.Package(err)
-	}
+	sig := rand.Uint64()
 	token := &tursom_im_protobuf.ImToken{
 		Uid: uid,
-		Sig: sig.Uint64(),
+		Sig: sig,
 	}
 
 	bytes, err := proto.Marshal(token)

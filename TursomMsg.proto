@@ -19,6 +19,9 @@ message ImMsg {
     string heartBeat = 8;
     AllocateNodeRequest allocateNodeRequest = 9;
     AllocateNodeResponse allocateNodeResponse = 10;
+    SendBroadcastRequest sendBroadcastRequest = 11;
+    SendBroadcastResponse sendBroadcastResponse = 12;
+    Broadcast broadcast = 13;
   }
 }
 
@@ -79,4 +82,22 @@ message AllocateNodeRequest {
 message AllocateNodeResponse {
   string reqId = 1;
   int32 node = 2;
+}
+
+message SendBroadcastRequest {
+  string reqId = 1;
+  int32 channel = 2;
+  MsgContent content = 3;
+}
+
+message SendBroadcastResponse {
+  string reqId = 1;
+  bool success = 2;
+  int32 receiverCount = 3;
+}
+
+message Broadcast {
+  string reqId = 1;
+  int32 channel = 2;
+  MsgContent content = 3;
 }

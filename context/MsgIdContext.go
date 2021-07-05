@@ -1,10 +1,7 @@
 package context
 
 import (
-	"crypto/rand"
-	"github.com/tursom/GoCollections/exceptions"
-	"math"
-	"math/big"
+	"math/rand"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -24,14 +21,10 @@ func NewMsgIdContext() *MsgIdContext {
 	now := time.Now()
 	timestamp := uint64(now.UnixNano()) / uint64(time.Millisecond)
 
-	sig, err := rand.Int(rand.Reader, big.NewInt(math.MaxInt64))
-	if err != nil {
-		exceptions.Print(err)
-		return nil
-	}
+	sig := rand.Uint64()
 
 	msgContext := &MsgIdContext{
-		timestamp: (timestamp<<(machineIdLength+incrementLength))&timestampMask | (sig.Uint64() & machineIdMask),
+		timestamp: (timestamp<<(machineIdLength+incrementLength))&timestampMask | (sig & machineIdMask),
 	}
 
 	go func() {
