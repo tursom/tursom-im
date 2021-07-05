@@ -72,28 +72,25 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 				if err != nil {
 					return nil, exceptions.Package(err)
 				}
-				c.handleBinaryMsg(attachmentConn, imMsg)
+				go func() {
+					_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
+						c.handleBinaryMsg(attachmentConn, imMsg)
+						return nil, nil
+					}, func(panic interface{}) (interface{}, exceptions.Exception) {
+						return nil, exceptions.PackagePanic(panic)
+					})
+					if err != nil {
+						exceptions.Print(err)
+					}
+				}()
 			case ws.OpText:
 				exception.NewUnsupportedException("could not handle text message").PrintStackTrace()
 			default:
 				exception.NewUnsupportedException("could not handle unknown message").PrintStackTrace()
 			}
 			return nil, nil
-		}, func(i interface{}) (interface{}, exceptions.Exception) {
-			switch i.(type) {
-			case error:
-				return nil, exceptions.NewRuntimeException(
-					i,
-					"an panic caused on handle WebSocket message:",
-					true, i,
-				)
-			default:
-				return nil, exceptions.NewRuntimeException(
-					i,
-					"an panic caused on handle WebSocket message:",
-					true, nil,
-				)
-			}
+		}, func(panic interface{}) (interface{}, exceptions.Exception) {
+			return nil, exceptions.PackagePanic(panic)
 		})
 		if err != nil {
 			exceptions.Print(err)

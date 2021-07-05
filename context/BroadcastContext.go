@@ -30,6 +30,15 @@ func (b *BroadcastContext) Listen(channel int32, conn *im_conn.AttachmentConn) e
 		b.channelGroupMap[channel] = connGroup
 	}
 	connGroup.Add(conn)
+
+	conn.AddEventListener(func(event im_conn.ConnEvent) {
+		if event.EventId().IsConnClosed() {
+			if connGroup.Size() == 0 {
+				delete(b.channelGroupMap, channel)
+			}
+		}
+	})
+
 	return nil
 }
 

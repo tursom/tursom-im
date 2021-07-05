@@ -34,8 +34,7 @@ func (g *ConnGroup) Add(conn *AttachmentConn) {
 }
 
 func (g *ConnGroup) connClosedListener(i ConnEvent) {
-	switch i.EventId() {
-	case ConnClosedId:
+	if i.EventId().IsConnClosed() {
 		g.Remove(i.Conn())
 	}
 }

@@ -70,13 +70,11 @@ func (c *ConnNodeContext) check(node int32) bool {
 func (c *ConnNodeContext) register(node int32, conn *im_conn.AttachmentConn) {
 	c.connMap[node] = conn
 	conn.AddEventListener(func(event im_conn.ConnEvent) {
-		switch event.EventId() {
-		case im_conn.ConnClosedId:
+		if event.EventId().IsConnClosed() {
 			c.mutex.Lock()
 			defer c.mutex.Unlock()
 
-			conn := c.connMap[node]
-			if conn == event.Conn() {
+			if c.connMap[node] == event.Conn() {
 				delete(c.connMap, node)
 			}
 		}

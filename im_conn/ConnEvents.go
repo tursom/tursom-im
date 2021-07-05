@@ -35,3 +35,7 @@ type ConnClosed struct {
 func NewConnClosed(conn *AttachmentConn) ConnClosed {
 	return ConnClosed{NewAbstractConnEvent(ConnClosedId, conn)}
 }
+
+func (i EventId) IsConnClosed() bool {
+	return i == ConnClosedId
+}
