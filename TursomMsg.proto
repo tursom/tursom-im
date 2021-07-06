@@ -110,7 +110,8 @@ message SendBroadcastResponse {
 }
 
 message Broadcast {
-  string reqId = 1;
-  int32 channel = 2;
-  MsgContent content = 3;
+  string sender = 1;
+  string reqId = 2;
+  int32 channel = 3;
+  MsgContent content = 4;
 }

@@ -80,7 +80,10 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 						return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 					})
 					if err != nil {
-						exceptions.Print(err)
+						if !utils.IsClosedError(err) {
+							exceptions.Print(err)
+							exceptions.Print(conn.Close())
+						}
 					}
 				}()
 			case ws.OpText:
@@ -90,7 +93,6 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 			}
 			return nil, nil
 		}, func(panic interface{}) (interface{}, exceptions.Exception) {
-
 			return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 		})
 		if err != nil {
@@ -205,6 +207,7 @@ func (c *WebSocketHandler) handleSendBroadcast(
 	imMsg := &tursom_im_protobuf.ImMsg{
 		MsgId: c.globalContext.MsgIdContext().NewMsgIdStr(),
 		Content: &tursom_im_protobuf.ImMsg_Broadcast{Broadcast: &tursom_im_protobuf.Broadcast{
+			Sender:  conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string),
 			ReqId:   sendBroadcastRequest.ReqId,
 			Channel: sendBroadcastRequest.Channel,
 			Content: sendBroadcastRequest.Content,
