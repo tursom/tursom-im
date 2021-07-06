@@ -36,7 +36,7 @@ func (c *ConnNodeContext) Allocate(conn *im_conn.AttachmentConn) int32 {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	randNode := rand.Int31()
+	randNode := rand.Int31() % c.nodeMax
 	if c.check(randNode) {
 		c.register(randNode, conn)
 		return randNode
