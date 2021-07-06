@@ -9,6 +9,8 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"net"
 	"net/http"
+	"os"
+	"reflect"
 	"tursom-im/context"
 	"tursom-im/exception"
 	"tursom-im/im_conn"
@@ -98,6 +100,10 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 		if err != nil {
 			if !utils.IsClosedError(err) {
 				exceptions.Print(err)
+				unpack := exceptions.UnpackException(err)
+				if unpack == nil {
+					_, _ = fmt.Fprintln(os.Stderr, "error type:", reflect.TypeOf(unpack))
+				}
 			}
 			return
 		}
