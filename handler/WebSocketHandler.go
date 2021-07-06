@@ -90,10 +90,13 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 			}
 			return nil, nil
 		}, func(panic interface{}) (interface{}, exceptions.Exception) {
+
 			return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 		})
 		if err != nil {
-			exceptions.Print(err)
+			if !utils.IsClosedError(err) {
+				exceptions.Print(err)
+			}
 			return
 		}
 	}
