@@ -34,10 +34,28 @@ func (b *BroadcastContext) Listen(channel int32, conn *im_conn.AttachmentConn) e
 	conn.AddEventListener(func(event im_conn.ConnEvent) {
 		if event.EventId().IsConnClosed() {
 			if connGroup.Size() == 0 {
-				delete(b.channelGroupMap, channel)
+				b.mutex.Lock()
+				defer b.mutex.Unlock()
+
+				if connGroup.Size() == 0 {
+					delete(b.channelGroupMap, channel)
+				}
 			}
 		}
 	})
+
+	return nil
+}
+
+func (b *BroadcastContext) CancelListen(channel int32, conn *im_conn.AttachmentConn) exceptions.Exception {
+	b.mutex.Lock()
+	defer b.mutex.Unlock()
+
+	connGroup := b.channelGroupMap[channel]
+	if connGroup == nil {
+		return nil
+	}
+	connGroup.Remove(conn)
 
 	return nil
 }

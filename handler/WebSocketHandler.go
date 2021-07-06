@@ -128,6 +128,8 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		imMsg.Content = c.handleAllocateNode(conn, msg)
 	case *tursom_im_protobuf.ImMsg_SendBroadcastRequest:
 		imMsg.Content = c.handleSendBroadcast(conn, msg)
+	case *tursom_im_protobuf.ImMsg_ListenBroadcastRequest:
+		imMsg.Content = c.handleListenBroadcast(conn, msg)
 	}
 	bytes, err := proto.Marshal(&imMsg)
 	if err != nil {
@@ -160,6 +162,31 @@ func (c *WebSocketHandler) handleAllocateNode(
 
 	return &tursom_im_protobuf.ImMsg_AllocateNodeResponse{
 		AllocateNodeResponse: allocateNodeResponse,
+	}
+}
+
+func (c *WebSocketHandler) handleListenBroadcast(
+	conn *im_conn.AttachmentConn,
+	msg *tursom_im_protobuf.ImMsg,
+) *tursom_im_protobuf.ImMsg_ListenBroadcastResponse {
+	listenBroadcastRequest := msg.GetListenBroadcastRequest()
+	response := &tursom_im_protobuf.ListenBroadcastResponse{
+		ReqId: listenBroadcastRequest.ReqId,
+	}
+
+	var err error = nil
+	if listenBroadcastRequest.CancelListen {
+		err = c.globalContext.BroadcastContext().CancelListen(listenBroadcastRequest.Channel, conn)
+	} else {
+		err = c.globalContext.BroadcastContext().Listen(listenBroadcastRequest.Channel, conn)
+	}
+	if err != nil {
+		exceptions.Print(err)
+	} else {
+		response.Success = true
+	}
+	return &tursom_im_protobuf.ImMsg_ListenBroadcastResponse{
+		ListenBroadcastResponse: response,
 	}
 }
 
