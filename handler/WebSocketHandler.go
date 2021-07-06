@@ -40,12 +40,12 @@ func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 }
 
 func (c *WebSocketHandler) Handle(conn net.Conn) {
-	//goland:noinspection GoUnhandledErrorResult
-	defer conn.Close()
-
 	attachmentConn := im_conn.NewSimpleAttachmentConn(conn)
+	//goland:noinspection GoUnhandledErrorResult
+	defer attachmentConn.Close()
+
 	watchDog := utils.NewWatchDog(60, func() bool {
-		_ = conn.Close()
+		_ = attachmentConn.Close()
 		return true
 	})
 	if watchDog == nil {
@@ -55,7 +55,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 
 	for {
 		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
-			msg, op, err := wsutil.ReadClientData(conn)
+			msg, op, err := wsutil.ReadClientData(attachmentConn)
 			if err != nil {
 				return nil, exceptions.Package(err)
 			}
@@ -77,7 +77,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 						c.handleBinaryMsg(attachmentConn, imMsg)
 						return nil, nil
 					}, func(panic interface{}) (interface{}, exceptions.Exception) {
-						return nil, exceptions.PackagePanic(panic)
+						return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 					})
 					if err != nil {
 						exceptions.Print(err)
@@ -90,7 +90,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 			}
 			return nil, nil
 		}, func(panic interface{}) (interface{}, exceptions.Exception) {
-			return nil, exceptions.PackagePanic(panic)
+			return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 		})
 		if err != nil {
 			exceptions.Print(err)
@@ -214,6 +214,7 @@ func (c *WebSocketHandler) handleSendBroadcast(
 		response.ReceiverCount = c.globalContext.BroadcastContext().Send(
 			sendBroadcastRequest.Channel,
 			bytes,
+			//nil,
 			func(c *im_conn.AttachmentConn) bool {
 				return c != conn
 			},
