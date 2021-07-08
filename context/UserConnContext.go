@@ -28,6 +28,10 @@ func (c *UserConnContext) GetUserConn(uid string) *im_conn.ConnGroup {
 	return c.connMap[uid]
 }
 
+func (c *UserConnContext) RemoveUserConn(uid string) {
+	delete(c.connMap, uid)
+}
+
 func (c *UserConnContext) GetCurrentConn(conn *im_conn.AttachmentConn) *im_conn.ConnGroup {
 	currentUserId := conn.Get(c.attrContext.userIdAttrKey)
 	return c.GetUserConn(currentUserId.Get().(string))
