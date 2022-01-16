@@ -29,6 +29,7 @@ message ImMsg {
 
 message LoginRequest {
   string token = 1;
+  bool tempId = 2;
 }
 
 message LoginResult {
