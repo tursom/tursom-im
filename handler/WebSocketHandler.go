@@ -69,6 +69,11 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 
 	for {
 		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
+			err := attachmentConn.HandleWrite()
+			if err != nil {
+				return nil, exceptions.Package(err)
+			}
+
 			msg, op, err := wsutil.ReadClientData(attachmentConn)
 			if err != nil {
 				return nil, exceptions.Package(err)

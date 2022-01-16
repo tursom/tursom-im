@@ -39,6 +39,11 @@ type AttachmentConn struct {
 	conn              net.Conn
 	attachment        *sync.Map
 	eventListenerList collections.MutableList
+	writeChannel      chan []byte
+}
+
+func (c *AttachmentConn) WriteChannel() chan<- []byte {
+	return c.writeChannel
 }
 
 func NewAttachmentKey(name string, t reflect.Type) AttachmentKey {
@@ -57,6 +62,7 @@ func NewAttachmentConn(conn net.Conn, attachment *sync.Map) *AttachmentConn {
 		conn:              conn,
 		attachment:        attachment,
 		eventListenerList: collections.NewArrayList(),
+		writeChannel:      make(chan []byte, 128),
 	}
 }
 
@@ -66,6 +72,7 @@ func NewSimpleAttachmentConn(conn net.Conn) *AttachmentConn {
 		conn:              conn,
 		attachment:        &attachment,
 		eventListenerList: collections.NewArrayList(),
+		writeChannel:      make(chan []byte, 128),
 	}
 }
 
@@ -156,6 +163,21 @@ func (a *AttachmentConn) Write(b []byte) (n int, err error) {
 	}
 	write, err := a.conn.Write(b)
 	return write, exceptions.Package(err)
+}
+
+func (a *AttachmentConn) HandleWrite() error {
+	for true {
+		select {
+		case bytes := <-a.writeChannel:
+			_, err := a.Write(bytes)
+			if err != nil {
+				return err
+			}
+		default:
+			return nil
+		}
+	}
+	return nil
 }
 
 func (a *AttachmentConn) Close() error {

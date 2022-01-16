@@ -83,16 +83,14 @@ func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) 
 	defer g.lock.RUnlock()
 	g.Loop(func(conn *AttachmentConn) {
 		if filter == nil || filter(conn) {
-			err := wsutil.WriteServerBinary(conn, bytes)
-			if err != nil {
-				if !utils.IsClosedError(err) {
-					exceptions.Print(err)
-					exceptions.Print(conn.Close())
-				}
-				g.Remove(conn)
-			} else {
+			_, err := exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
+				conn.WriteChannel() <- bytes
 				sent++
-			}
+				return nil, nil
+			}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
+				return nil, exceptions.Package(err)
+			})
+			exceptions.Print(err)
 		}
 	})
 	return sent
