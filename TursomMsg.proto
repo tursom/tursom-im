@@ -49,6 +49,7 @@ enum FailType {
 }
 
 message MsgContent {
+  string reqId = 3;
   oneof content {
     string msg = 1;
     google.protobuf.Any ext = 2;

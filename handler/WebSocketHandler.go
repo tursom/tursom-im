@@ -110,10 +110,10 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	}
 }
 
-func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
+func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
 	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get()
-	fmt.Println(sender, ":", msg)
-	imMsg := tursom_im_protobuf.ImMsg{}
+	fmt.Println("request:", sender, ":", request)
+	response := tursom_im_protobuf.ImMsg{}
 	closeConnection := false
 	defer func() {
 		if closeConnection {
@@ -121,28 +121,30 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, msg *tu
 		}
 	}()
 
-	if msg.SelfMsg {
-		c.handleSelfMsg(conn, msg)
+	if request.SelfMsg {
+		c.handleSelfMsg(conn, request)
 		return
 	}
 
-	switch msg.GetContent().(type) {
+	switch request.GetContent().(type) {
 	case *tursom_im_protobuf.ImMsg_SendMsgRequest:
-		imMsg.Content, imMsg.MsgId = c.handleSendChatMsg(conn, msg)
+		response.Content, response.MsgId = c.handleSendChatMsg(conn, request)
 	case *tursom_im_protobuf.ImMsg_LoginRequest:
-		loginResult := c.handleBinaryLogin(conn, msg)
-		imMsg.Content = loginResult
+		loginResult := c.handleBinaryLogin(conn, request)
+		response.Content = loginResult
 		closeConnection = !loginResult.LoginResult.Success
 	case *tursom_im_protobuf.ImMsg_HeartBeat:
-		imMsg.Content = msg.Content
+		response.Content = request.Content
 	case *tursom_im_protobuf.ImMsg_AllocateNodeRequest:
-		imMsg.Content = c.handleAllocateNode(conn, msg)
+		response.Content = c.handleAllocateNode(conn, request)
 	case *tursom_im_protobuf.ImMsg_SendBroadcastRequest:
-		imMsg.Content = c.handleSendBroadcast(conn, msg)
+		response.Content = c.handleSendBroadcast(conn, request)
 	case *tursom_im_protobuf.ImMsg_ListenBroadcastRequest:
-		imMsg.Content = c.handleListenBroadcast(conn, msg)
+		response.Content = c.handleListenBroadcast(conn, request)
 	}
-	bytes, err := proto.Marshal(&imMsg)
+
+	fmt.Println("response:", sender, ":", &response)
+	bytes, err := proto.Marshal(&response)
 	if err != nil {
 		exceptions.Print(err)
 		return
