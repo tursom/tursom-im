@@ -76,7 +76,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 			}
 			msg, op, err := attachmentConn.TryRead()
 			if msg == nil && err == nil {
-				time.Sleep(500 * time.Millisecond)
+				time.Sleep(100 * time.Millisecond)
 				return nil, nil
 			}
 
