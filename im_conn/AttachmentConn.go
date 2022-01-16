@@ -2,6 +2,8 @@ package im_conn
 
 import (
 	"fmt"
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/tursom/GoCollections/collections"
 	"github.com/tursom/GoCollections/exceptions"
 	"net"
@@ -9,6 +11,7 @@ import (
 	"sync"
 	"time"
 	"tursom-im/exception"
+	"tursom-im/utils"
 )
 
 type AttachmentKey struct {
@@ -35,15 +38,31 @@ type Attachment struct {
 	attachment *sync.Map
 }
 
+type readData struct {
+	data []byte
+	op   ws.OpCode
+	err  error
+}
+
 type AttachmentConn struct {
 	conn              net.Conn
 	attachment        *sync.Map
 	eventListenerList collections.MutableList
 	writeChannel      chan []byte
+	readChannel       chan readData
 }
 
 func (c *AttachmentConn) WriteChannel() chan<- []byte {
 	return c.writeChannel
+}
+
+func (c *AttachmentConn) TryRead() ([]byte, ws.OpCode, error) {
+	select {
+	case data := <-c.readChannel:
+		return data.data, data.op, data.err
+	default:
+	}
+	return nil, 0, nil
 }
 
 func NewAttachmentKey(name string, t reflect.Type) AttachmentKey {
@@ -63,6 +82,7 @@ func NewAttachmentConn(conn net.Conn, attachment *sync.Map) *AttachmentConn {
 		attachment:        attachment,
 		eventListenerList: collections.NewArrayList(),
 		writeChannel:      make(chan []byte, 128),
+		readChannel:       make(chan readData, 128),
 	}
 }
 
@@ -73,6 +93,28 @@ func NewSimpleAttachmentConn(conn net.Conn) *AttachmentConn {
 		attachment:        &attachment,
 		eventListenerList: collections.NewArrayList(),
 		writeChannel:      make(chan []byte, 128),
+		readChannel:       make(chan readData, 128),
+	}
+}
+func (a *AttachmentConn) LoopRead() {
+	var err error
+	for !utils.IsClosedError(err) {
+		_, err = exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
+			msg, op, e := wsutil.ReadClientData(a)
+			if e != nil {
+				return nil, exceptions.Package(e)
+			}
+			a.readChannel <- readData{
+				data: msg,
+				op:   op,
+			}
+			return nil, nil
+		}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
+			return nil, exceptions.Package(err)
+		})
+		a.readChannel <- readData{
+			err: exceptions.Package(err),
+		}
 	}
 }
 
@@ -151,7 +193,7 @@ func (a *AttachmentConn) RemoveEventListener(f func(ConnEvent)) {
 
 func (a *AttachmentConn) Read(b []byte) (n int, err error) {
 	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+		return 0, exceptions.NewNPE("AttachmentConn is null", true)
 	}
 	read, err := a.conn.Read(b)
 	return read, exceptions.Package(err)
@@ -159,7 +201,7 @@ func (a *AttachmentConn) Read(b []byte) (n int, err error) {
 
 func (a *AttachmentConn) Write(b []byte) (n int, err error) {
 	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+		return 0, exceptions.NewNPE("AttachmentConn is null", true)
 	}
 	write, err := a.conn.Write(b)
 	return write, exceptions.Package(err)
@@ -169,7 +211,7 @@ func (a *AttachmentConn) HandleWrite() error {
 	for true {
 		select {
 		case bytes := <-a.writeChannel:
-			_, err := a.Write(bytes)
+			err := wsutil.WriteServerBinary(a, bytes)
 			if err != nil {
 				return err
 			}

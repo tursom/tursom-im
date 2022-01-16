@@ -6,7 +6,6 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"sync"
 	"tursom-im/tursom_im_protobuf"
-	"tursom-im/utils"
 )
 
 type void struct{}
@@ -108,9 +107,7 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 		if filter == nil || filter(conn) {
 			err := wsutil.WriteServerText(conn, bytes)
 			if err != nil {
-				if !utils.IsClosedError(err) {
-					exceptions.Print(err)
-				}
+				exceptions.Print(err)
 				err = conn.Close()
 				exceptions.Print(conn.Close())
 				g.Remove(conn)

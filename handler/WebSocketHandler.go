@@ -3,7 +3,6 @@ package handler
 import (
 	"fmt"
 	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/julienschmidt/httprouter"
 	"github.com/tursom/GoCollections/exceptions"
@@ -11,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"time"
 	"tursom-im/context"
 	"tursom-im/exception"
 	"tursom-im/im_conn"
@@ -67,17 +67,23 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 		return
 	}
 
+	go attachmentConn.LoopRead()
 	for {
 		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
 			err := attachmentConn.HandleWrite()
 			if err != nil {
 				return nil, exceptions.Package(err)
 			}
+			msg, op, err := attachmentConn.TryRead()
+			if msg == nil && err == nil {
+				time.Sleep(500 * time.Millisecond)
+				return nil, nil
+			}
 
-			msg, op, err := wsutil.ReadClientData(attachmentConn)
 			if err != nil {
 				return nil, exceptions.Package(err)
 			}
+
 			watchDog.Feed()
 
 			if !op.IsData() {
@@ -99,8 +105,8 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 						return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 					})
 					if err != nil {
+						exceptions.Print(err)
 						if !utils.IsClosedError(err) {
-							exceptions.Print(err)
 							exceptions.Print(conn.Close())
 						}
 					}
@@ -115,8 +121,8 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 			return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 		})
 		if err != nil {
-			if !utils.IsClosedError(err) {
-				exceptions.Print(err)
+			exceptions.Print(err)
+			if utils.IsClosedError(err) {
 				unpack := exceptions.UnpackException(err)
 				if unpack == nil {
 					_, _ = fmt.Fprintln(os.Stderr, "error type:", reflect.TypeOf(unpack))
@@ -170,10 +176,7 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 		exceptions.Print(err)
 		return
 	}
-	err = wsutil.WriteServerBinary(conn, bytes)
-	if err != nil {
-		exceptions.Print(err)
-	}
+	conn.WriteChannel() <- bytes
 }
 
 func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
@@ -249,7 +252,7 @@ func (c *WebSocketHandler) handleSendBroadcast(
 		ReqId: sendBroadcastRequest.ReqId,
 	}
 
-	imMsg := &tursom_im_protobuf.ImMsg{
+	broadcast := &tursom_im_protobuf.ImMsg{
 		MsgId: c.globalContext.MsgIdContext().NewMsgIdStr(),
 		Content: &tursom_im_protobuf.ImMsg_Broadcast{Broadcast: &tursom_im_protobuf.Broadcast{
 			Sender:  conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string),
@@ -258,7 +261,7 @@ func (c *WebSocketHandler) handleSendBroadcast(
 			Content: sendBroadcastRequest.Content,
 		}},
 	}
-	bytes, err := proto.Marshal(imMsg)
+	bytes, err := proto.Marshal(broadcast)
 	if err != nil {
 		exceptions.Print(err)
 	} else {
