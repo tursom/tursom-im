@@ -83,7 +83,7 @@ func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) 
 	g.Loop(func(conn *AttachmentConn) {
 		if filter == nil || filter(conn) {
 			_, err := exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
-				conn.WriteChannel() <- bytes
+				conn.WriteData(bytes)
 				sent++
 				return nil, nil
 			}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {

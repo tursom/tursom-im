@@ -3,14 +3,17 @@ package handler
 import (
 	"fmt"
 	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/julienschmidt/httprouter"
 	"github.com/tursom/GoCollections/exceptions"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"reflect"
-	"time"
+	"runtime"
+	"sync/atomic"
 	"tursom-im/context"
 	"tursom-im/exception"
 	"tursom-im/im_conn"
@@ -19,18 +22,32 @@ import (
 )
 
 type WebSocketHandler struct {
-	globalContext *context.GlobalContext
+	globalContext     *context.GlobalContext
+	writeChannelList  []chan im_conn.ConnWriteMsg
+	writeChannelIndex uint32
 }
 
 func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler {
 	return &WebSocketHandler{
-		globalContext: globalContext,
+		globalContext:     globalContext,
+		writeChannelList:  nil,
+		writeChannelIndex: 0,
 	}
 }
 
 func (c *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Router) {
 	if c == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+	}
+
+	if c.writeChannelList == nil {
+		var writeChannelList []chan im_conn.ConnWriteMsg
+		writeChannelCount := int(math.Max(16, float64(runtime.NumCPU()*2)))
+		for i := 0; i < writeChannelCount; i++ {
+			writeChannel := make(chan im_conn.ConnWriteMsg, 128)
+			go handleWrite(writeChannel)
+			writeChannelList = append(writeChannelList, writeChannel)
+		}
 	}
 
 	router.GET(basePath+"/ws", c.UpgradeToWebSocket)
@@ -49,12 +66,28 @@ func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 	go c.Handle(conn)
 }
 
+func handleWrite(writeChannel chan im_conn.ConnWriteMsg) {
+	for true {
+		_, err := exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
+			writeMsg := <-writeChannel
+			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
+				return nil, exceptions.Package(writeErr)
+			}
+			return
+		}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
+			return nil, exceptions.PackagePanic(err, "an panic caused on handle websocket write")
+		})
+		exceptions.Print(err)
+	}
+}
+
 func (c *WebSocketHandler) Handle(conn net.Conn) {
 	if c == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", true))
 	}
 
-	attachmentConn := im_conn.NewSimpleAttachmentConn(conn)
+	writeChannelIndex := atomic.AddUint32(&c.writeChannelIndex, 1)
+	attachmentConn := im_conn.NewSimpleAttachmentConn(conn, c.writeChannelList[writeChannelIndex])
 	//goland:noinspection GoUnhandledErrorResult
 	defer attachmentConn.Close()
 
@@ -67,19 +100,9 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 		return
 	}
 
-	go attachmentConn.LoopRead()
 	for {
 		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
-			err := attachmentConn.HandleWrite()
-			if err != nil {
-				return nil, exceptions.Package(err)
-			}
-			msg, op, err := attachmentConn.TryRead()
-			if msg == nil && err == nil {
-				time.Sleep(100 * time.Millisecond)
-				return nil, nil
-			}
-
+			msg, op, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				return nil, exceptions.Package(err)
 			}
@@ -176,7 +199,7 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 		exceptions.Print(err)
 		return
 	}
-	conn.WriteChannel() <- bytes
+	conn.WriteData(bytes)
 }
 
 func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
