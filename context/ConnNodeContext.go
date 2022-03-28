@@ -1,16 +1,19 @@
 package context
 
 import (
+	"github.com/tursom-im/im_conn"
+	"github.com/tursom/GoCollections/concurrent"
+	"github.com/tursom/GoCollections/lang"
 	"math/rand"
 	"sync"
-	"tursom-im/im_conn"
 )
 
 // ConnNodeContext
 // 负责节点注册的服务
 type ConnNodeContext struct {
+	lang.BaseObject
 	connMap     map[int32]*im_conn.AttachmentConn
-	mutex       *sync.Mutex
+	mutex       concurrent.Lock
 	attrContext *AttrContext
 	nodeMax     int32
 }
@@ -70,13 +73,14 @@ func (c *ConnNodeContext) check(node int32) bool {
 func (c *ConnNodeContext) register(node int32, conn *im_conn.AttachmentConn) {
 	c.connMap[node] = conn
 	conn.AddEventListener(func(event im_conn.ConnEvent) {
-		if event.EventId().IsConnClosed() {
-			c.mutex.Lock()
-			defer c.mutex.Unlock()
+		if !event.EventId().IsConnClosed() {
+			return
+		}
+		c.mutex.Lock()
+		defer c.mutex.Unlock()
 
-			if c.connMap[node] == event.Conn() {
-				delete(c.connMap, node)
-			}
+		if c.connMap[node] == event.Conn() {
+			delete(c.connMap, node)
 		}
 	})
 }

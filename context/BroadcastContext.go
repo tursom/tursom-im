@@ -1,14 +1,16 @@
 package context
 
 import (
+	"github.com/tursom-im/im_conn"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 	"sync"
-	"tursom-im/im_conn"
 )
 
 // BroadcastContext
 // 负责实现广播的服务
 type BroadcastContext struct {
+	lang.BaseObject
 	channelGroupMap map[int32]*im_conn.ConnGroup
 	mutex           *sync.RWMutex
 }
@@ -32,16 +34,13 @@ func (b *BroadcastContext) Listen(channel int32, conn *im_conn.AttachmentConn) e
 	connGroup.Add(conn)
 
 	conn.AddEventListener(func(event im_conn.ConnEvent) {
-		if event.EventId().IsConnClosed() {
-			if connGroup.Size() == 0 {
-				b.mutex.Lock()
-				defer b.mutex.Unlock()
-
-				if connGroup.Size() == 0 {
-					delete(b.channelGroupMap, channel)
-				}
-			}
+		if !event.EventId().IsConnClosed() || connGroup.Size() != 0 {
+			return
 		}
+		b.mutex.Lock()
+		defer b.mutex.Unlock()
+
+		delete(b.channelGroupMap, channel)
 	})
 
 	return nil

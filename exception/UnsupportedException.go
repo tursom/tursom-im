@@ -6,12 +6,11 @@ type UnsupportedException struct {
 	exceptions.RuntimeException
 }
 
-func NewUnsupportedException(message interface{}) UnsupportedException {
+func NewUnsupportedException(message any) UnsupportedException {
 	return UnsupportedException{
 		exceptions.NewRuntimeException(
 			message,
 			"exception caused UnsupportedException:",
-			true,
 			nil,
 		),
 	}

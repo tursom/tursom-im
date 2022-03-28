@@ -1,20 +1,30 @@
 package im_conn
 
+import "github.com/tursom/GoCollections/lang"
+
 type EventId int32
 
 const (
-	ConnClosedId = 1
+	ConnClosedId EventId = 1
 )
 
-type ConnEvent interface {
-	EventId() EventId
-	Conn() *AttachmentConn
-}
+type (
+	ConnEvent interface {
+		lang.Object
+		EventId() EventId
+		Conn() *AttachmentConn
+	}
 
-type AbstractConnEvent struct {
-	eventId EventId
-	conn    *AttachmentConn
-}
+	AbstractConnEvent struct {
+		lang.BaseObject
+		eventId EventId
+		conn    *AttachmentConn
+	}
+
+	ConnClosed struct {
+		AbstractConnEvent
+	}
+)
 
 func (a AbstractConnEvent) EventId() EventId {
 	return a.eventId
@@ -28,12 +38,8 @@ func NewAbstractConnEvent(eventId EventId, conn *AttachmentConn) AbstractConnEve
 	return AbstractConnEvent{eventId: eventId, conn: conn}
 }
 
-type ConnClosed struct {
-	AbstractConnEvent
-}
-
-func NewConnClosed(conn *AttachmentConn) ConnClosed {
-	return ConnClosed{NewAbstractConnEvent(ConnClosedId, conn)}
+func NewConnClosed(conn *AttachmentConn) *ConnClosed {
+	return &ConnClosed{AbstractConnEvent: NewAbstractConnEvent(ConnClosedId, conn)}
 }
 
 func (i EventId) IsConnClosed() bool {

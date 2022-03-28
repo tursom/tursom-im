@@ -3,12 +3,14 @@ package handler
 import (
 	"encoding/json"
 	"github.com/julienschmidt/httprouter"
+	"github.com/tursom-im/context"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 	"net/http"
-	"tursom-im/context"
 )
 
 type TokenHandler struct {
+	lang.BaseObject
 	globalContext *context.GlobalContext
 }
 

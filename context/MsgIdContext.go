@@ -1,6 +1,7 @@
 package context
 
 import (
+	"github.com/tursom/GoCollections/lang"
 	"math/rand"
 	"strings"
 	"sync/atomic"
@@ -14,6 +15,7 @@ const incrementLength = 7
 const timestampMask = 0x7f_ff_ff_ff_ff_ff_ff_ff
 
 type MsgIdContext struct {
+	lang.BaseObject
 	timestamp uint64
 }
 

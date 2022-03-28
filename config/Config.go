@@ -1,31 +1,42 @@
 package config
 
-import "net/http"
+import (
+	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
+	"gopkg.in/yaml.v2"
+	"net/http"
+	"strings"
+)
 
 type Config struct {
-	Admin  AdminConfig  `yaml:"admin"`
-	Server ServerConfig `yaml:"server"`
-	SSL    SSL          `yaml:"ssl"`
-	Node   NodeConfig   `yaml:"node"`
+	lang.BaseObject `yaml:"-" json:"-"`
+	Admin           AdminConfig  `yaml:"admin" json:"admin"`
+	Server          ServerConfig `yaml:"server" json:"server"`
+	SSL             SSL          `yaml:"ssl" json:"ssl"`
+	Node            NodeConfig   `yaml:"node" json:"node"`
 }
 
 type AdminConfig struct {
-	Id       string `yaml:"id"`
-	Password string `yaml:"password"`
+	lang.BaseObject `yaml:"-" json:"-"`
+	Id              string `yaml:"id" json:"id"`
+	Password        string `yaml:"password" json:"password"`
 }
 
 type ServerConfig struct {
-	Port int `yaml:"port"`
+	lang.BaseObject `yaml:"-" json:"-"`
+	Port            int `yaml:"port" json:"port"`
 }
 
 type SSL struct {
-	Cert   string `yaml:"cert"`
-	Key    string `yaml:"key"`
-	Enable bool   `yaml:"enable"`
+	lang.BaseObject `yaml:"-" json:"-"`
+	Cert            string `yaml:"cert" json:"cert"`
+	Key             string `yaml:"key" json:"key"`
+	Enable          bool   `yaml:"enable" json:"enable"`
 }
 
 type NodeConfig struct {
-	NodeMax int32 `yaml:"nodeMax"`
+	lang.BaseObject `yaml:"-" json:"-"`
+	NodeMax         int32 `yaml:"nodeMax" json:"nodeMax"`
 }
 
 func NewConfig() *Config {
@@ -35,6 +46,15 @@ func NewConfig() *Config {
 		SSL:    SSL{Enable: false},
 		Node:   NodeConfig{NodeMax: 4096},
 	}
+}
+
+func (c *Config) String() string {
+	sw := &strings.Builder{}
+	encoder := yaml.NewEncoder(sw)
+	if err := encoder.Encode(c); err != nil {
+		panic(exceptions.Package(err))
+	}
+	return sw.String()
 }
 
 // CheckAdmin

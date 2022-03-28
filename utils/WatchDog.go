@@ -1,35 +1,38 @@
 package utils
 
 import (
+	"fmt"
+	"github.com/tursom-im/exception"
 	"github.com/tursom/GoCollections/collections"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 	"time"
 )
 
 type WatchDog struct {
-	feeding  uint32
-	life     uint32
+	lang.BaseObject
+	feeding  int32
+	life     int32
 	callback func() bool
 }
 
-var watchDogList = collections.NewConcurrentLinkedQueue()
+var watchDogList = collections.NewConcurrentLinkedQueue[*WatchDog]()
 
 func InitWatchDog() {
 	go func() {
 		for {
 			start := time.Now().UnixNano()
 			//fmt.Println("watch dog loop", watchDogList)
-			_ = collections.LoopMutable(watchDogList, func(element interface{}, iterator collections.MutableIterator) (err exceptions.Exception) {
-				watchDog := element.(*WatchDog)
+			_ = collections.LoopMutable[*WatchDog](watchDogList, func(watchDog *WatchDog, iterator collections.MutableIterator[*WatchDog]) (err exceptions.Exception) {
 				watchDog.feeding--
-				if watchDog.feeding == 0 {
+				if watchDog.feeding <= 0 {
 					watchDog.feeding = watchDog.life
-					_, _ = exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
+					_, err = exceptions.Try[any](func() (ret any, err exceptions.Exception) {
 						if watchDog.callback() {
 							_ = iterator.Remove()
 						}
 						return
-					}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
+					}, func(panic any) (ret any, err exceptions.Exception) {
 						exceptions.PackageAny(panic).PrintStackTrace()
 						_ = iterator.Remove()
 						return
@@ -46,10 +49,12 @@ func InitWatchDog() {
 	}()
 }
 
-func NewWatchDog(life uint32, callback func() bool) *WatchDog {
-	w := &WatchDog{life, life, callback}
-	err := watchDogList.Push(w)
-	if err != nil {
+func NewWatchDog(life int32, callback func() bool) *WatchDog {
+	if life <= 0 {
+		panic(exception.NewIllegalParameterException(fmt.Sprintf("watch dog feed lift must more than 0"), nil))
+	}
+	w := &WatchDog{feeding: life, life: life, callback: callback}
+	if err := watchDogList.Push(w); err != nil {
 		err.PrintStackTrace()
 		return nil
 	}
@@ -60,6 +65,6 @@ func (w *WatchDog) Feed() {
 	w.feeding = w.life
 }
 
-func (w WatchDog) Life() uint32 {
+func (w WatchDog) Life() int32 {
 	return w.feeding
 }

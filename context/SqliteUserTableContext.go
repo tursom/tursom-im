@@ -3,16 +3,28 @@ package context
 import (
 	"database/sql"
 	"encoding/json"
+	"github.com/tursom-im/exception"
 	"github.com/tursom/GoCollections/exceptions"
-	"tursom-im/exception"
+	"github.com/tursom/GoCollections/lang"
+)
+
+const (
+	tableUserCreate = `create table if not exists user(
+	id char(32) primary key not null,
+	token text
+)`
+	rowUserCreate = `insert into user (id,token) values (?,?)`
+	rowUserQuery  = `select id,token from user where id=?`
 )
 
 type SqliteUserTableContext struct {
+	lang.BaseObject
 	db           *sql.DB
 	msgIdContext *MsgIdContext
 }
 
 type UserNotFoundError struct {
+	exceptions.RuntimeException
 	uid string
 }
 
@@ -25,16 +37,13 @@ func (s *SqliteUserTableContext) Init(ctx *GlobalContext) {
 }
 
 func (s *SqliteUserTableContext) CreateTable() exceptions.Exception {
-	_, err := s.db.Exec("create table if not exists user(" +
-		"	id char(32) primary key not null," +
-		"	token text" +
-		")")
+	_, err := s.db.Exec(tableUserCreate)
 	return exceptions.Package(err)
 }
 
 func (s *SqliteUserTableContext) CreateUser() (*User, exceptions.Exception) {
 	newUserId := s.msgIdContext.NewMsgIdStr()
-	_, err := s.db.Exec("insert into user (id,token) values (?,?)", newUserId, "[]")
+	_, err := s.db.Exec(rowUserCreate, newUserId, "[]")
 	if err != nil {
 		return nil, exceptions.Package(err)
 	}
@@ -42,7 +51,7 @@ func (s *SqliteUserTableContext) CreateUser() (*User, exceptions.Exception) {
 }
 
 func (s *SqliteUserTableContext) CreateUserWithToken(uid string, token string) (*User, exceptions.Exception) {
-	_, err := s.db.Exec("insert into user (id,token) values (?,?)", uid, "[\""+token+"\"]")
+	_, err := s.db.Exec(rowUserCreate, uid, "[\""+token+"\"]")
 	if err != nil {
 		return nil, exceptions.Package(err)
 	}
@@ -50,7 +59,7 @@ func (s *SqliteUserTableContext) CreateUserWithToken(uid string, token string) (
 }
 
 func (s *SqliteUserTableContext) FindById(uid string) (*User, exceptions.Exception) {
-	rows, err := s.db.Query("select id,token from user where id=?", uid)
+	rows, err := s.db.Query(rowUserQuery, uid)
 	if err != nil {
 		return nil, exceptions.Package(err)
 	}

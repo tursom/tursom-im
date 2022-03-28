@@ -4,9 +4,11 @@ import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 )
 
 type SqliteSqlContext struct {
+	lang.BaseObject
 	db               *sql.DB
 	userTableContext *SqliteUserTableContext
 }

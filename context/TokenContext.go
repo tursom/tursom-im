@@ -4,13 +4,15 @@ import (
 	b64 "encoding/base64"
 	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/tursom-im/exception"
+	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 	"math/rand"
-	"tursom-im/exception"
-	"tursom-im/tursom_im_protobuf"
 )
 
 type TokenContext struct {
+	lang.BaseObject
 	sqlContext SqlContext
 }
 

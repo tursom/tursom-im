@@ -99,7 +99,7 @@ func file_system_proto_rawDescGZIP() []byte {
 }
 
 var file_system_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_system_proto_goTypes = []interface{}{
+var file_system_proto_goTypes = []any{
 	(*ImToken)(nil), // 0: ImToken
 }
 var file_system_proto_depIdxs = []int32{
@@ -116,7 +116,7 @@ func file_system_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_system_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_system_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ImToken); i {
 			case 0:
 				return &v.state

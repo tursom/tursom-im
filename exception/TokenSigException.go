@@ -6,12 +6,11 @@ type TokenSigException struct {
 	exceptions.RuntimeException
 }
 
-func NewTokenSigException(message interface{}) TokenSigException {
+func NewTokenSigException(message any) TokenSigException {
 	return TokenSigException{
 		exceptions.NewRuntimeException(
 			message,
 			"exception caused TokenSigException:",
-			true,
 			nil,
 		),
 	}

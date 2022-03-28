@@ -2,12 +2,14 @@ package handler
 
 import (
 	"github.com/julienschmidt/httprouter"
+	"github.com/tursom-im/context"
+	"github.com/tursom/GoCollections/lang"
 	"net/http"
 	"os"
-	"tursom-im/context"
 )
 
 type CommandHandler struct {
+	lang.BaseObject
 	globalContext context.GlobalContext
 }
 

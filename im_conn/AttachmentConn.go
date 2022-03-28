@@ -1,50 +1,83 @@
 package im_conn
 
 import (
-	"fmt"
+	"github.com/tursom-im/exception"
 	"github.com/tursom/GoCollections/collections"
+	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 	"net"
-	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
-	"tursom-im/exception"
 )
 
-type AttachmentKey struct {
-	name string
-	t    reflect.Type
-}
+var attachmentKeyId = int32(0)
 
-type ConnWriteMsg struct {
-	Conn *AttachmentConn
-	Data []byte
-}
-
-func (a *AttachmentKey) T() reflect.Type {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentKey is null", true))
+type (
+	AttachmentKey[T any] struct {
+		lang.BaseObject
+		name string
+		id   int32
 	}
-	return a.t
-}
 
-func (a *AttachmentKey) Name() string {
+	ConnWriteMsg struct {
+		lang.BaseObject
+		Conn *AttachmentConn
+		Data []byte
+	}
+
+	Attachment[T any] struct {
+		lang.BaseObject
+		key        *AttachmentKey[T]
+		attachment *sync.Map
+	}
+
+	EventListener struct {
+		lang.BaseObject
+		eventListenerList collections.MutableList[*EventListener]
+		listener          func(event ConnEvent)
+		lock              concurrent.RWLock
+	}
+
+	AttachmentConn struct {
+		lang.BaseObject
+		conn              net.Conn
+		attachment        *sync.Map
+		eventListenerList collections.MutableList[*EventListener]
+		writeChannel      chan ConnWriteMsg
+		lock              concurrent.RWLock
+	}
+)
+
+func (a *AttachmentKey[T]) Name() string {
 	if a == nil {
-		panic(exceptions.NewNPE("AttachmentKey is null", true))
+		panic(exceptions.NewNPE("AttachmentKey is null", nil))
 	}
 	return a.name
 }
 
-type Attachment struct {
-	key        *AttachmentKey
-	attachment *sync.Map
+func (a *AttachmentKey[T]) Id() int32 {
+	if a == nil {
+		panic(exceptions.NewNPE("AttachmentKey is null", nil))
+	}
+	return a.id
 }
 
-type AttachmentConn struct {
-	conn              net.Conn
-	attachment        *sync.Map
-	eventListenerList collections.MutableList
-	writeChannel      chan ConnWriteMsg
+func (a *AttachmentKey[T]) Get(c *AttachmentConn) *Attachment[T] {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
+	}
+	return &Attachment[T]{
+		key:        a,
+		attachment: c.attachment,
+	}
+}
+
+func (l *EventListener) Remove() exceptions.Exception {
+	l.lock.Lock()
+	defer l.lock.Unlock()
+	return l.eventListenerList.Remove(l)
 }
 
 func (c *AttachmentConn) WriteChannel() chan<- ConnWriteMsg {
@@ -52,13 +85,13 @@ func (c *AttachmentConn) WriteChannel() chan<- ConnWriteMsg {
 }
 
 func (c *AttachmentConn) WriteData(data []byte) {
-	c.writeChannel <- ConnWriteMsg{c, data}
+	c.writeChannel <- ConnWriteMsg{Conn: c, Data: data}
 }
 
-func NewAttachmentKey(name string, t reflect.Type) AttachmentKey {
-	return AttachmentKey{
+func NewAttachmentKey[T any](name string) AttachmentKey[T] {
+	return AttachmentKey[T]{
 		name: name,
-		t:    t,
+		id:   atomic.AddInt32(&attachmentKeyId, 1),
 	}
 }
 
@@ -70,149 +103,138 @@ func NewAttachmentConn(conn net.Conn, attachment *sync.Map, writeChannel chan Co
 	return &AttachmentConn{
 		conn:              conn,
 		attachment:        attachment,
-		eventListenerList: collections.NewArrayList(),
+		eventListenerList: collections.NewArrayList[*EventListener](),
 		writeChannel:      writeChannel,
+		lock:              concurrent.NewReentrantRWLock(),
 	}
 }
 
 func NewSimpleAttachmentConn(conn net.Conn, writeChannel chan ConnWriteMsg) *AttachmentConn {
-	var attachment sync.Map
-	return &AttachmentConn{
-		conn:              conn,
-		attachment:        &attachment,
-		eventListenerList: collections.NewArrayList(),
-		writeChannel:      writeChannel,
-	}
+	return NewAttachmentConn(conn, nil, writeChannel)
 }
 
-func (a *AttachmentConn) Get(key *AttachmentKey) *Attachment {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
-	}
-	return &Attachment{
-		key:        key,
-		attachment: a.attachment,
-	}
-}
+//  syntax error: method must have no type parameters
+//func (a *AttachmentConn) Get[T any](key *AttachmentKey[T]) *Attachment[T] {
+//	if a == nil {
+//		panic(exceptions.NewNPE("AttachmentConn is null", nil))
+//	}
+//	return &Attachment[T]{
+//		key:        key,
+//		attachment: a.attachment,
+//	}
+//}
 
-func (a *AttachmentConn) notify(event ConnEvent) {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) notify(event ConnEvent) {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	err := collections.Loop(a.eventListenerList, func(element interface{}) exceptions.Exception {
-		switch element.(type) {
-		case func(ConnEvent):
-			_, _ = exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
-				element.(func(ConnEvent))(event)
-				return
-			}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
-				exceptions.NewRuntimeException(
-					panic,
-					"an exception caused on call ConnEvent listener:",
-					true, panic,
-				).PrintStackTrace()
-				return
-			})
-		}
+	c.lock.RLock()
+	defer c.lock.RUnlock()
+
+	err := collections.Loop[*EventListener](c.eventListenerList, func(element *EventListener) exceptions.Exception {
+		_, _ = exceptions.Try(func() (ret any, err exceptions.Exception) {
+			element.listener(event)
+			return
+		}, func(panic any) (ret any, err exceptions.Exception) {
+			exceptions.NewRuntimeException(
+				panic,
+				"an exception caused on call ConnEvent listener:",
+				exceptions.DefaultExceptionConfig().SetCause(panic),
+			).PrintStackTrace()
+			return
+		})
 		return nil
 	})
 	exceptions.Print(err)
 }
 
-func (a *Attachment) Get() interface{} {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) AddEventListener(f func(event ConnEvent)) (listener *EventListener) {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	load, _ := a.attachment.Load(a.key.name)
-	return load
-}
-
-func (a *Attachment) Set(value interface{}) exceptions.Exception {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
-	}
-	valueType := reflect.TypeOf(value)
-	if valueType.AssignableTo(a.key.t) {
-		a.attachment.Store(a.key.name, value)
-		return nil
-	} else {
-		return exception.NewInvalidTypeException(fmt.Sprintf("value of type %s cannot cast to %s", valueType, a.key.t))
-	}
-}
-
-func (a *AttachmentConn) AddEventListener(f func(event ConnEvent)) {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
-	}
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	if f != nil {
-		a.eventListenerList.Add(f)
+		listener = &EventListener{eventListenerList: c.eventListenerList, listener: f, lock: c.lock}
+		c.eventListenerList.Add(listener)
 	}
+	return
 }
 
-func (a *AttachmentConn) RemoveEventListener(f func(ConnEvent)) {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) Read(b []byte) (n int, err error) {
+	if c == nil {
+		return 0, exceptions.NewNPE("AttachmentConn is null", nil)
 	}
-	if f != nil {
-		_ = a.eventListenerList.Remove(f)
-	}
-}
-
-func (a *AttachmentConn) Read(b []byte) (n int, err error) {
-	if a == nil {
-		return 0, exceptions.NewNPE("AttachmentConn is null", true)
-	}
-	read, err := a.conn.Read(b)
+	read, err := c.conn.Read(b)
 	return read, exceptions.Package(err)
 }
 
-func (a *AttachmentConn) Write(b []byte) (n int, err error) {
-	if a == nil {
-		return 0, exceptions.NewNPE("AttachmentConn is null", true)
+func (c *AttachmentConn) Write(b []byte) (n int, err error) {
+	if c == nil {
+		return 0, exceptions.NewNPE("AttachmentConn is null", nil)
 	}
-	write, err := a.conn.Write(b)
+	write, err := c.conn.Write(b)
 	return write, exceptions.Package(err)
 }
 
-func (a *AttachmentConn) Close() error {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) Close() error {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	a.notify(NewConnClosed(a))
-	return exceptions.Package(a.conn.Close())
+	go c.notify(NewConnClosed(c))
+	return exceptions.Package(c.conn.Close())
 }
 
-func (a *AttachmentConn) LocalAddr() net.Addr {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) LocalAddr() net.Addr {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	return a.conn.LocalAddr()
+	return c.conn.LocalAddr()
 }
 
-func (a *AttachmentConn) RemoteAddr() net.Addr {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) RemoteAddr() net.Addr {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	return a.conn.RemoteAddr()
+	return c.conn.RemoteAddr()
 }
 
-func (a *AttachmentConn) SetDeadline(t time.Time) error {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) SetDeadline(t time.Time) error {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	return exceptions.Package(a.conn.SetDeadline(t))
+	return exceptions.Package(c.conn.SetDeadline(t))
 }
 
-func (a *AttachmentConn) SetReadDeadline(t time.Time) error {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) SetReadDeadline(t time.Time) error {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	return exceptions.Package(a.conn.SetReadDeadline(t))
+	return exceptions.Package(c.conn.SetReadDeadline(t))
 }
 
-func (a *AttachmentConn) SetWriteDeadline(t time.Time) error {
-	if a == nil {
-		panic(exceptions.NewNPE("AttachmentConn is null", true))
+func (c *AttachmentConn) SetWriteDeadline(t time.Time) error {
+	if c == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	return exceptions.Package(a.conn.SetWriteDeadline(t))
+	return exceptions.Package(c.conn.SetWriteDeadline(t))
+}
+
+func (a *Attachment[T]) Get() T {
+	if a == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
+	}
+	load, _ := a.attachment.Load(a.key.id)
+	value, ok := load.(T)
+	if !ok {
+		panic(exception.NewTypeCastExceptionByType[T](load, nil))
+	}
+	return value
+}
+
+func (a *Attachment[T]) Set(value T) {
+	if a == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
+	}
+	a.attachment.Store(a.key.id, value)
 }

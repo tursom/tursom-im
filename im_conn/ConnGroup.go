@@ -3,9 +3,10 @@ package im_conn
 import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
+	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/exceptions"
-	"sync"
-	"tursom-im/tursom_im_protobuf"
+	"github.com/tursom/GoCollections/lang"
 )
 
 type void struct{}
@@ -13,21 +14,22 @@ type void struct{}
 var member void
 
 type ConnGroup struct {
-	lock     *sync.RWMutex
+	lang.BaseObject
+	lock     concurrent.RWLock
 	connList map[*AttachmentConn]void
 	subGroup *ConnGroup
 }
 
 func NewConnGroup() *ConnGroup {
 	return &ConnGroup{
-		lock:     new(sync.RWMutex),
+		lock:     concurrent.NewReentrantRWLock(),
 		connList: make(map[*AttachmentConn]void),
 	}
 }
 
 func SnapshotConnGroup(g *ConnGroup) *ConnGroup {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	return &ConnGroup{
 		lock:     g.lock,
@@ -37,14 +39,14 @@ func SnapshotConnGroup(g *ConnGroup) *ConnGroup {
 
 func (g *ConnGroup) Size() int32 {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	return int32(len(g.connList))
 }
 
 func (g *ConnGroup) Add(conn *AttachmentConn) {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	if conn == nil {
 		return
@@ -57,7 +59,7 @@ func (g *ConnGroup) Add(conn *AttachmentConn) {
 
 func (g *ConnGroup) connClosedListener(i ConnEvent) {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	if i.EventId().IsConnClosed() {
 		g.Remove(i.Conn())
@@ -66,7 +68,7 @@ func (g *ConnGroup) connClosedListener(i ConnEvent) {
 
 func (g *ConnGroup) Remove(conn *AttachmentConn) {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	g.lock.Lock()
 	defer g.lock.Unlock()
@@ -75,18 +77,16 @@ func (g *ConnGroup) Remove(conn *AttachmentConn) {
 
 func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) bool) int32 {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	var sent int32 = 0
-	g.lock.RLock()
-	defer g.lock.RUnlock()
 	g.Loop(func(conn *AttachmentConn) {
 		if filter == nil || filter(conn) {
-			_, err := exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
+			_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
 				conn.WriteData(bytes)
 				sent++
 				return nil, nil
-			}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
+			}, func(panic any) (ret any, err exceptions.Exception) {
 				return nil, exceptions.Package(err)
 			})
 			exceptions.Print(err)
@@ -97,12 +97,10 @@ func (g *ConnGroup) WriteBinaryFrame(bytes []byte, filter func(*AttachmentConn) 
 
 func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) bool) int32 {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	var sent int32 = 0
 	bytes := []byte(text)
-	g.lock.RLock()
-	defer g.lock.RUnlock()
 	g.Loop(func(conn *AttachmentConn) {
 		if filter == nil || filter(conn) {
 			err := wsutil.WriteServerText(conn, bytes)
@@ -121,7 +119,7 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 
 func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*AttachmentConn) bool) exceptions.Exception {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	bytes, err := proto.Marshal(msg)
 	if err != nil {
@@ -133,7 +131,7 @@ func (g *ConnGroup) WriteChatMsg(msg *tursom_im_protobuf.ImMsg, filter func(*Att
 
 func (g *ConnGroup) Append(target *ConnGroup) {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	if target == nil {
 		return
@@ -145,7 +143,7 @@ func (g *ConnGroup) Append(target *ConnGroup) {
 
 func (g *ConnGroup) Link(target *ConnGroup) {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	defer g.lock.Unlock()
 	g.lock.Lock()
@@ -159,7 +157,7 @@ func (g *ConnGroup) Link(target *ConnGroup) {
 
 func (g *ConnGroup) Aggregation(target *ConnGroup) *ConnGroup {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	if g == target {
 		return g
@@ -172,15 +170,10 @@ func (g *ConnGroup) Aggregation(target *ConnGroup) *ConnGroup {
 
 func (g *ConnGroup) Loop(handler func(*AttachmentConn)) {
 	if g == nil {
-		panic(exceptions.NewNPE("ConnGroup is null", true))
+		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
 	g.lock.RLock()
-	defer func() {
-		g.lock.RUnlock()
-		if g == nil {
-			g.subGroup.Loop(handler)
-		}
-	}()
+	defer g.lock.RUnlock()
 	for conn := range g.connList {
 		if conn != nil {
 			handler(conn)

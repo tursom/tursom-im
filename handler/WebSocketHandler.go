@@ -6,7 +6,13 @@ import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/julienschmidt/httprouter"
+	"github.com/tursom-im/context"
+	"github.com/tursom-im/exception"
+	"github.com/tursom-im/im_conn"
+	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/utils"
 	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 	"math"
 	"net"
 	"net/http"
@@ -14,14 +20,10 @@ import (
 	"reflect"
 	"runtime"
 	"sync/atomic"
-	"tursom-im/context"
-	"tursom-im/exception"
-	"tursom-im/im_conn"
-	"tursom-im/tursom_im_protobuf"
-	"tursom-im/utils"
 )
 
 type WebSocketHandler struct {
+	lang.BaseObject
 	globalContext     *context.GlobalContext
 	writeChannelList  []chan im_conn.ConnWriteMsg
 	writeChannelIndex uint32
@@ -37,16 +39,15 @@ func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler
 
 func (c *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Router) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	if c.writeChannelList == nil {
-		var writeChannelList []chan im_conn.ConnWriteMsg
 		writeChannelCount := int(math.Max(16, float64(runtime.NumCPU()*2)))
 		for i := 0; i < writeChannelCount; i++ {
 			writeChannel := make(chan im_conn.ConnWriteMsg, 128)
 			go handleWrite(writeChannel)
-			writeChannelList = append(writeChannelList, writeChannel)
+			c.writeChannelList = append(c.writeChannelList, writeChannel)
 		}
 	}
 
@@ -55,7 +56,7 @@ func (c *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Ro
 
 func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
@@ -68,13 +69,16 @@ func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 
 func handleWrite(writeChannel chan im_conn.ConnWriteMsg) {
 	for true {
-		_, err := exceptions.Try(func() (ret interface{}, err exceptions.Exception) {
-			writeMsg := <-writeChannel
+		_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
+			writeMsg, ok := <-writeChannel
+			if !ok {
+				return nil, exceptions.NewRuntimeException(nil, "cannot receive msg from write channel", nil)
+			}
 			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
 				return nil, exceptions.Package(writeErr)
 			}
 			return
-		}, func(panic interface{}) (ret interface{}, err exceptions.Exception) {
+		}, func(panic any) (ret any, err exceptions.Exception) {
 			return nil, exceptions.PackagePanic(err, "an panic caused on handle websocket write")
 		})
 		exceptions.Print(err)
@@ -83,7 +87,7 @@ func handleWrite(writeChannel chan im_conn.ConnWriteMsg) {
 
 func (c *WebSocketHandler) Handle(conn net.Conn) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	writeChannelIndex := atomic.AddUint32(&c.writeChannelIndex, 1)
@@ -101,7 +105,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	}
 
 	for {
-		_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
+		_, err := exceptions.Try(func() (any, exceptions.Exception) {
 			msg, op, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				return nil, exceptions.Package(err)
@@ -121,10 +125,10 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 					return nil, exceptions.Package(err)
 				}
 				go func() {
-					_, err := exceptions.Try(func() (interface{}, exceptions.Exception) {
+					_, err := exceptions.Try(func() (any, exceptions.Exception) {
 						c.handleBinaryMsg(attachmentConn, imMsg)
 						return nil, nil
-					}, func(panic interface{}) (interface{}, exceptions.Exception) {
+					}, func(panic any) (any, exceptions.Exception) {
 						return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 					})
 					if err != nil {
@@ -140,7 +144,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 				exception.NewUnsupportedException("could not handle unknown message").PrintStackTrace()
 			}
 			return nil, nil
-		}, func(panic interface{}) (interface{}, exceptions.Exception) {
+		}, func(panic any) (any, exceptions.Exception) {
 			return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
 		})
 		if err != nil {
@@ -158,10 +162,10 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 
 func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get()
+	sender := c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get()
 	fmt.Println("request:", sender, ":", request)
 	response := tursom_im_protobuf.ImMsg{}
 	closeConnection := false
@@ -204,10 +208,10 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 
 func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string)
+	sender := c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
 	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
 	_ = currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
 		return conn != c
@@ -219,7 +223,7 @@ func (c *WebSocketHandler) handleAllocateNode(
 	msg *tursom_im_protobuf.ImMsg,
 ) *tursom_im_protobuf.ImMsg_AllocateNodeResponse {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	allocateNodeResponse := &tursom_im_protobuf.AllocateNodeResponse{
@@ -238,7 +242,7 @@ func (c *WebSocketHandler) handleListenBroadcast(
 	msg *tursom_im_protobuf.ImMsg,
 ) *tursom_im_protobuf.ImMsg_ListenBroadcastResponse {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	listenBroadcastRequest := msg.GetListenBroadcastRequest()
@@ -267,7 +271,7 @@ func (c *WebSocketHandler) handleSendBroadcast(
 	msg *tursom_im_protobuf.ImMsg,
 ) *tursom_im_protobuf.ImMsg_SendBroadcastResponse {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	sendBroadcastRequest := msg.GetSendBroadcastRequest()
@@ -278,7 +282,7 @@ func (c *WebSocketHandler) handleSendBroadcast(
 	broadcast := &tursom_im_protobuf.ImMsg{
 		MsgId: c.globalContext.MsgIdContext().NewMsgIdStr(),
 		Content: &tursom_im_protobuf.ImMsg_Broadcast{Broadcast: &tursom_im_protobuf.Broadcast{
-			Sender:  conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string),
+			Sender:  c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString(),
 			ReqId:   sendBroadcastRequest.ReqId,
 			Channel: sendBroadcastRequest.Channel,
 			Content: sendBroadcastRequest.Content,
@@ -310,14 +314,14 @@ func (c *WebSocketHandler) handleSendChatMsg(
 	msgId string,
 ) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
 	response = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: &tursom_im_protobuf.SendMsgResponse{}}
 	msgId = c.globalContext.MsgIdContext().NewMsgIdStr()
 	sendMsgRequest := msg.GetSendMsgRequest()
 
-	sender := conn.Get(c.globalContext.AttrContext().UserIdAttrKey()).Get().(string)
+	sender := c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
 
 	response.SendMsgResponse.ReqId = sendMsgRequest.ReqId
 
@@ -351,7 +355,7 @@ func (c *WebSocketHandler) handleBinaryLogin(
 	msg *tursom_im_protobuf.ImMsg,
 ) (loginResult *tursom_im_protobuf.ImMsg_LoginResult) {
 	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", true))
+		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 	loginResult = &tursom_im_protobuf.ImMsg_LoginResult{
 		LoginResult: &tursom_im_protobuf.LoginResult{},
@@ -363,33 +367,24 @@ func (c *WebSocketHandler) handleBinaryLogin(
 		return
 	}
 
-	userIdAttr := conn.Get(c.globalContext.AttrContext().UserIdAttrKey())
-	userTokenAttr := conn.Get(c.globalContext.AttrContext().UserTokenAttrKey())
+	userIdAttr := c.globalContext.AttrContext().UserIdAttrKey().Get(conn)
+	userTokenAttr := c.globalContext.AttrContext().UserTokenAttrKey().Get(conn)
 
 	uid := token.Uid
 	if msg.GetLoginRequest().TempId {
 		uid = uid + "-" + c.globalContext.MsgIdContext().NewMsgIdStr()
 	}
 
-	err = userIdAttr.Set(uid)
-	if err != nil {
-		exceptions.Print(err)
-		return
-	}
-	err = userTokenAttr.Set(token)
-	if err != nil {
-		exceptions.Print(err)
-		return
-	}
+	userIdAttr.Set(lang.NewString(uid))
+	userTokenAttr.Set(token)
 
 	connGroup := c.globalContext.UserConnContext().TouchUserConn(uid)
 	connGroup.Add(conn)
 	conn.AddEventListener(func(event im_conn.ConnEvent) {
-		if event.EventId().IsConnClosed() {
-			if connGroup.Size() == 0 {
-				c.globalContext.UserConnContext().RemoveUserConn(uid)
-			}
+		if !event.EventId().IsConnClosed() || connGroup.Size() != 0 {
+			return
 		}
+		c.globalContext.UserConnContext().RemoveUserConn(uid)
 	})
 
 	loginResult.LoginResult.ImUserId = uid

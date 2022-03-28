@@ -1,10 +1,12 @@
 package context
 
 import (
-	"tursom-im/config"
+	"github.com/tursom-im/config"
+	"github.com/tursom/GoCollections/lang"
 )
 
 type GlobalContext struct {
+	lang.BaseObject
 	tokenContext     *TokenContext
 	attrContext      *AttrContext
 	userConnContext  *UserConnContext

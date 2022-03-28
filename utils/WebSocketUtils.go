@@ -7,7 +7,7 @@ import (
 	"net"
 )
 
-func IsClosedError(err interface{}) bool {
+func IsClosedError(err any) bool {
 	unpackErr := exceptions.UnpackException(err)
 	for unpackErr != err {
 		err = unpackErr

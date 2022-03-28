@@ -1364,7 +1364,7 @@ func file_TursomMsg_proto_rawDescGZIP() []byte {
 
 var file_TursomMsg_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_TursomMsg_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
-var file_TursomMsg_proto_goTypes = []interface{}{
+var file_TursomMsg_proto_goTypes = []any{
 	(FailType)(0),                   // 0: cn.tursom.im.protobuf.FailType
 	(*ImMsg)(nil),                   // 1: cn.tursom.im.protobuf.ImMsg
 	(*LoginRequest)(nil),            // 2: cn.tursom.im.protobuf.LoginRequest
@@ -1414,7 +1414,7 @@ func file_TursomMsg_proto_init() {
 		return
 	}
 	if !protoimpl.UnsafeEnabled {
-		file_TursomMsg_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[0].Exporter = func(v any, i int) any {
 			switch v := v.(*ImMsg); i {
 			case 0:
 				return &v.state
@@ -1426,7 +1426,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[1].Exporter = func(v any, i int) any {
 			switch v := v.(*LoginRequest); i {
 			case 0:
 				return &v.state
@@ -1438,7 +1438,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[2].Exporter = func(v any, i int) any {
 			switch v := v.(*LoginResult); i {
 			case 0:
 				return &v.state
@@ -1450,7 +1450,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[3].Exporter = func(v any, i int) any {
 			switch v := v.(*MsgContent); i {
 			case 0:
 				return &v.state
@@ -1462,7 +1462,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[4].Exporter = func(v any, i int) any {
 			switch v := v.(*SendMsgRequest); i {
 			case 0:
 				return &v.state
@@ -1474,7 +1474,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[5].Exporter = func(v any, i int) any {
 			switch v := v.(*SendMsgResponse); i {
 			case 0:
 				return &v.state
@@ -1486,7 +1486,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[6].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[6].Exporter = func(v any, i int) any {
 			switch v := v.(*ChatMsg); i {
 			case 0:
 				return &v.state
@@ -1498,7 +1498,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[7].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[7].Exporter = func(v any, i int) any {
 			switch v := v.(*AllocateNodeRequest); i {
 			case 0:
 				return &v.state
@@ -1510,7 +1510,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[8].Exporter = func(v any, i int) any {
 			switch v := v.(*AllocateNodeResponse); i {
 			case 0:
 				return &v.state
@@ -1522,7 +1522,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[9].Exporter = func(v any, i int) any {
 			switch v := v.(*ListenBroadcastRequest); i {
 			case 0:
 				return &v.state
@@ -1534,7 +1534,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[10].Exporter = func(v any, i int) any {
 			switch v := v.(*ListenBroadcastResponse); i {
 			case 0:
 				return &v.state
@@ -1546,7 +1546,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[11].Exporter = func(v any, i int) any {
 			switch v := v.(*SendBroadcastRequest); i {
 			case 0:
 				return &v.state
@@ -1558,7 +1558,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[12].Exporter = func(v any, i int) any {
 			switch v := v.(*SendBroadcastResponse); i {
 			case 0:
 				return &v.state
@@ -1570,7 +1570,7 @@ func file_TursomMsg_proto_init() {
 				return nil
 			}
 		}
-		file_TursomMsg_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+		file_TursomMsg_proto_msgTypes[13].Exporter = func(v any, i int) any {
 			switch v := v.(*Broadcast); i {
 			case 0:
 				return &v.state
@@ -1583,7 +1583,7 @@ func file_TursomMsg_proto_init() {
 			}
 		}
 	}
-	file_TursomMsg_proto_msgTypes[0].OneofWrappers = []interface{}{
+	file_TursomMsg_proto_msgTypes[0].OneofWrappers = []any{
 		(*ImMsg_LoginRequest)(nil),
 		(*ImMsg_LoginResult)(nil),
 		(*ImMsg_ChatMsg)(nil),
@@ -1598,7 +1598,7 @@ func file_TursomMsg_proto_init() {
 		(*ImMsg_SendBroadcastResponse)(nil),
 		(*ImMsg_Broadcast)(nil),
 	}
-	file_TursomMsg_proto_msgTypes[3].OneofWrappers = []interface{}{
+	file_TursomMsg_proto_msgTypes[3].OneofWrappers = []any{
 		(*MsgContent_Msg)(nil),
 		(*MsgContent_Ext)(nil),
 	}

@@ -6,12 +6,11 @@ type TokenParseException struct {
 	exceptions.RuntimeException
 }
 
-func NewTokenParseException(message interface{}) TokenParseException {
+func NewTokenParseException(message any) TokenParseException {
 	return TokenParseException{
 		exceptions.NewRuntimeException(
 			message,
 			"exception caused TokenParseException:",
-			true,
 			nil,
 		),
 	}
