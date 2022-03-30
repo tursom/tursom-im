@@ -75,6 +75,9 @@ func (a *AttachmentKey[T]) Get(c *AttachmentConn) *Attachment[T] {
 }
 
 func (l *EventListener) Remove() exceptions.Exception {
+	if l == nil {
+		return nil
+	}
 	l.lock.Lock()
 	defer l.lock.Unlock()
 	return l.eventListenerList.Remove(l)

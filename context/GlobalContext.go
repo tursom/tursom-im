@@ -7,11 +7,11 @@ import (
 
 type GlobalContext struct {
 	lang.BaseObject
+	cfg              *config.Config
 	tokenContext     *TokenContext
 	attrContext      *AttrContext
 	userConnContext  *UserConnContext
 	msgIdContext     *MsgIdContext
-	cfg              *config.Config
 	sqlContext       SqlContext
 	connNodeContext  *ConnNodeContext
 	broadcastContext *BroadcastContext
@@ -54,11 +54,11 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 	}
 
 	g := &GlobalContext{
+		cfg:              config,
 		tokenContext:     tokenContext,
 		attrContext:      attrContext,
 		userConnContext:  userConnContext,
 		msgIdContext:     msgIdContext,
-		cfg:              config,
 		sqlContext:       sqlContext,
 		connNodeContext:  connNodeContext,
 		broadcastContext: broadcastContext,

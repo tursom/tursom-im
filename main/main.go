@@ -7,6 +7,7 @@ import (
 	"github.com/tursom-im/config"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
+	"github.com/tursom-im/handler/msg"
 	"github.com/tursom-im/utils"
 	"github.com/tursom/GoCollections/exceptions"
 	"gopkg.in/yaml.v2"
@@ -18,6 +19,7 @@ import (
 )
 
 func systemInit() *config.Config {
+	msg.Init()
 	rand.Seed(time.Now().UnixNano())
 	utils.InitWatchDog()
 

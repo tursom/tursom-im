@@ -12,6 +12,7 @@ import (
 type void struct{}
 
 var member void
+var connGroupAttrKey = NewAttachmentKey[*EventListener]()
 
 type ConnGroup struct {
 	lang.BaseObject
@@ -54,7 +55,8 @@ func (g *ConnGroup) Add(conn *AttachmentConn) {
 	g.lock.Lock()
 	defer g.lock.Unlock()
 	g.connList[conn] = member
-	conn.AddEventListener(g.connClosedListener)
+	listener := conn.AddEventListener(g.connClosedListener)
+	connGroupAttrKey.Get(conn).Set(listener)
 }
 
 func (g *ConnGroup) connClosedListener(i ConnEvent) {
@@ -70,8 +72,10 @@ func (g *ConnGroup) Remove(conn *AttachmentConn) {
 	if g == nil {
 		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
+	_ = connGroupAttrKey.Get(conn).Get().Remove()
 	g.lock.Lock()
 	defer g.lock.Unlock()
+
 	delete(g.connList, conn)
 }
 
@@ -106,9 +110,9 @@ func (g *ConnGroup) WriteTextFrame(text string, filter func(*AttachmentConn) boo
 			err := wsutil.WriteServerText(conn, bytes)
 			if err != nil {
 				exceptions.Print(err)
+				g.Remove(conn)
 				err = conn.Close()
 				exceptions.Print(conn.Close())
-				g.Remove(conn)
 			} else {
 				sent++
 			}

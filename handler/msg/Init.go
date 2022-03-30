@@ -1,0 +1,4 @@
+package msg
+
+func Init() {
+}

@@ -20,6 +20,7 @@ type Table interface {
 
 type UserTableContext interface {
 	lang.Object
+	Table
 	CreateUser() (*User, exceptions.Exception)
 	FindById(uid string) (*User, exceptions.Exception)
 	GetToken(uid string) (*[]string, exceptions.Exception)

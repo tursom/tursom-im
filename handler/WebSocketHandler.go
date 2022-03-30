@@ -22,11 +22,45 @@ import (
 	"sync/atomic"
 )
 
-type WebSocketHandler struct {
-	lang.BaseObject
-	globalContext     *context.GlobalContext
-	writeChannelList  []chan im_conn.ConnWriteMsg
-	writeChannelIndex uint32
+type (
+	MsgHandlerContext struct {
+		lang.Object
+		Response        *tursom_im_protobuf.ImMsg
+		CloseConnection bool
+	}
+
+	// ImMsgHandler shows an object that can handle im msg
+	// default im handlers on package handler/msg, you need to run msg.Init() to initial imHandlerFactories
+	ImMsgHandler interface {
+		lang.Object
+		HandleMsg(
+			conn *im_conn.AttachmentConn,
+			msg *tursom_im_protobuf.ImMsg,
+			ctx *MsgHandlerContext,
+		) (ok bool)
+	}
+
+	WebSocketHandler struct {
+		lang.BaseObject
+		globalContext     *context.GlobalContext
+		writeChannelList  []chan im_conn.ConnWriteMsg
+		writeChannelIndex uint32
+		handlers          []ImMsgHandler
+	}
+)
+
+var imHandlerFactories []func(ctx *context.GlobalContext) ImMsgHandler
+
+func RegisterImHandlerFactory(handlerFactory func(ctx *context.GlobalContext) ImMsgHandler) {
+	imHandlerFactories = append(imHandlerFactories, handlerFactory)
+}
+
+func GetImMsgHandlers(ctx *context.GlobalContext) []ImMsgHandler {
+	handlers := make([]ImMsgHandler, len(imHandlerFactories))
+	for i, factory := range imHandlerFactories {
+		handlers[i] = factory(ctx)
+	}
+	return handlers
 }
 
 func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler {
@@ -34,28 +68,29 @@ func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler
 		globalContext:     globalContext,
 		writeChannelList:  nil,
 		writeChannelIndex: 0,
+		handlers:          GetImMsgHandlers(globalContext),
 	}
 }
 
-func (c *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Router) {
-	if c == nil {
+func (h *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Router) {
+	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	if c.writeChannelList == nil {
+	if h.writeChannelList == nil {
 		writeChannelCount := int(math.Max(16, float64(runtime.NumCPU()*2)))
 		for i := 0; i < writeChannelCount; i++ {
 			writeChannel := make(chan im_conn.ConnWriteMsg, 128)
 			go handleWrite(writeChannel)
-			c.writeChannelList = append(c.writeChannelList, writeChannel)
+			h.writeChannelList = append(h.writeChannelList, writeChannel)
 		}
 	}
 
-	router.GET(basePath+"/ws", c.UpgradeToWebSocket)
+	router.GET(basePath+"/ws", h.UpgradeToWebSocket)
 }
 
-func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if c == nil {
+func (h *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
@@ -64,7 +99,7 @@ func (c *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 		exceptions.Package(err).PrintStackTrace()
 		return
 	}
-	go c.Handle(conn)
+	go h.Handle(conn)
 }
 
 func handleWrite(writeChannel chan im_conn.ConnWriteMsg) {
@@ -85,13 +120,13 @@ func handleWrite(writeChannel chan im_conn.ConnWriteMsg) {
 	}
 }
 
-func (c *WebSocketHandler) Handle(conn net.Conn) {
-	if c == nil {
+func (h *WebSocketHandler) Handle(conn net.Conn) {
+	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	writeChannelIndex := atomic.AddUint32(&c.writeChannelIndex, 1)
-	attachmentConn := im_conn.NewSimpleAttachmentConn(conn, c.writeChannelList[writeChannelIndex])
+	writeChannelIndex := atomic.AddUint32(&h.writeChannelIndex, 1)
+	attachmentConn := im_conn.NewSimpleAttachmentConn(conn, h.writeChannelList[writeChannelIndex])
 	//goland:noinspection GoUnhandledErrorResult
 	defer attachmentConn.Close()
 
@@ -126,7 +161,7 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 				}
 				go func() {
 					_, err := exceptions.Try(func() (any, exceptions.Exception) {
-						c.handleBinaryMsg(attachmentConn, imMsg)
+						h.handleBinaryMsg(attachmentConn, imMsg)
 						return nil, nil
 					}, func(panic any) (any, exceptions.Exception) {
 						return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
@@ -160,41 +195,32 @@ func (c *WebSocketHandler) Handle(conn net.Conn) {
 	}
 }
 
-func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
-	if c == nil {
+func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
+	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	sender := c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get()
+	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get()
 	fmt.Println("request:", sender, ":", request)
 	response := tursom_im_protobuf.ImMsg{}
-	closeConnection := false
+	ctx := &MsgHandlerContext{
+		Response: &response,
+	}
 	defer func() {
-		if closeConnection {
+		if ctx.CloseConnection {
 			_ = conn.Close()
 		}
 	}()
 
 	if request.SelfMsg {
-		c.handleSelfMsg(conn, request)
+		h.handleSelfMsg(conn, request)
 		return
 	}
 
-	switch request.GetContent().(type) {
-	case *tursom_im_protobuf.ImMsg_SendMsgRequest:
-		response.Content, response.MsgId = c.handleSendChatMsg(conn, request)
-	case *tursom_im_protobuf.ImMsg_LoginRequest:
-		loginResult := c.handleBinaryLogin(conn, request)
-		response.Content = loginResult
-		closeConnection = !loginResult.LoginResult.Success
-	case *tursom_im_protobuf.ImMsg_HeartBeat:
-		response.Content = request.Content
-	case *tursom_im_protobuf.ImMsg_AllocateNodeRequest:
-		response.Content = c.handleAllocateNode(conn, request)
-	case *tursom_im_protobuf.ImMsg_SendBroadcastRequest:
-		response.Content = c.handleSendBroadcast(conn, request)
-	case *tursom_im_protobuf.ImMsg_ListenBroadcastRequest:
-		response.Content = c.handleListenBroadcast(conn, request)
+	for _, handler := range h.handlers {
+		if handler.HandleMsg(conn, request, ctx) {
+			break
+		}
 	}
 
 	fmt.Println("response:", sender, ":", &response)
@@ -206,189 +232,14 @@ func (c *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 	conn.WriteData(bytes)
 }
 
-func (c *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
-	if c == nil {
+func (h *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
+	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	sender := c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
-	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
+	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
+	currentConn := h.globalContext.UserConnContext().GetUserConn(sender)
 	_ = currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
 		return conn != c
 	})
-}
-
-func (c *WebSocketHandler) handleAllocateNode(
-	conn *im_conn.AttachmentConn,
-	msg *tursom_im_protobuf.ImMsg,
-) *tursom_im_protobuf.ImMsg_AllocateNodeResponse {
-	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
-
-	allocateNodeResponse := &tursom_im_protobuf.AllocateNodeResponse{
-		ReqId: msg.GetAllocateNodeRequest().ReqId,
-	}
-
-	allocateNodeResponse.Node = c.globalContext.ConnNodeContext().Allocate(conn)
-
-	return &tursom_im_protobuf.ImMsg_AllocateNodeResponse{
-		AllocateNodeResponse: allocateNodeResponse,
-	}
-}
-
-func (c *WebSocketHandler) handleListenBroadcast(
-	conn *im_conn.AttachmentConn,
-	msg *tursom_im_protobuf.ImMsg,
-) *tursom_im_protobuf.ImMsg_ListenBroadcastResponse {
-	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
-
-	listenBroadcastRequest := msg.GetListenBroadcastRequest()
-	response := &tursom_im_protobuf.ListenBroadcastResponse{
-		ReqId: listenBroadcastRequest.ReqId,
-	}
-
-	var err error = nil
-	if listenBroadcastRequest.CancelListen {
-		err = c.globalContext.BroadcastContext().CancelListen(listenBroadcastRequest.Channel, conn)
-	} else {
-		err = c.globalContext.BroadcastContext().Listen(listenBroadcastRequest.Channel, conn)
-	}
-	if err != nil {
-		exceptions.Print(err)
-	} else {
-		response.Success = true
-	}
-	return &tursom_im_protobuf.ImMsg_ListenBroadcastResponse{
-		ListenBroadcastResponse: response,
-	}
-}
-
-func (c *WebSocketHandler) handleSendBroadcast(
-	conn *im_conn.AttachmentConn,
-	msg *tursom_im_protobuf.ImMsg,
-) *tursom_im_protobuf.ImMsg_SendBroadcastResponse {
-	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
-
-	sendBroadcastRequest := msg.GetSendBroadcastRequest()
-	response := &tursom_im_protobuf.SendBroadcastResponse{
-		ReqId: sendBroadcastRequest.ReqId,
-	}
-
-	broadcast := &tursom_im_protobuf.ImMsg{
-		MsgId: c.globalContext.MsgIdContext().NewMsgIdStr(),
-		Content: &tursom_im_protobuf.ImMsg_Broadcast{Broadcast: &tursom_im_protobuf.Broadcast{
-			Sender:  c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString(),
-			ReqId:   sendBroadcastRequest.ReqId,
-			Channel: sendBroadcastRequest.Channel,
-			Content: sendBroadcastRequest.Content,
-		}},
-	}
-	bytes, err := proto.Marshal(broadcast)
-	if err != nil {
-		exceptions.Print(err)
-	} else {
-		response.ReceiverCount = c.globalContext.BroadcastContext().Send(
-			sendBroadcastRequest.Channel,
-			bytes,
-			//nil,
-			func(c *im_conn.AttachmentConn) bool {
-				return c != conn
-			},
-		)
-	}
-	return &tursom_im_protobuf.ImMsg_SendBroadcastResponse{
-		SendBroadcastResponse: response,
-	}
-}
-
-func (c *WebSocketHandler) handleSendChatMsg(
-	conn *im_conn.AttachmentConn,
-	msg *tursom_im_protobuf.ImMsg,
-) (
-	response *tursom_im_protobuf.ImMsg_SendMsgResponse,
-	msgId string,
-) {
-	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
-
-	response = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: &tursom_im_protobuf.SendMsgResponse{}}
-	msgId = c.globalContext.MsgIdContext().NewMsgIdStr()
-	sendMsgRequest := msg.GetSendMsgRequest()
-
-	sender := c.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
-
-	response.SendMsgResponse.ReqId = sendMsgRequest.ReqId
-
-	receiver := sendMsgRequest.Receiver
-	receiverConn := c.globalContext.UserConnContext().GetUserConn(receiver)
-	currentConn := c.globalContext.UserConnContext().GetUserConn(sender)
-	if receiverConn == nil || currentConn == nil {
-		response.SendMsgResponse.FailMsg = "user \"" + receiver + "\" not login"
-		response.SendMsgResponse.FailType = tursom_im_protobuf.FailType_TARGET_NOT_LOGIN
-		return
-	}
-
-	response.SendMsgResponse.Success = true
-	imMsg := &tursom_im_protobuf.ImMsg{
-		MsgId: msgId,
-		Content: &tursom_im_protobuf.ImMsg_ChatMsg{ChatMsg: &tursom_im_protobuf.ChatMsg{
-			Receiver: receiver,
-			Sender:   sender,
-			Content:  sendMsgRequest.Content,
-		}},
-	}
-	_ = currentConn.Aggregation(receiverConn).WriteChatMsg(imMsg, func(c *im_conn.AttachmentConn) bool {
-		return conn != c
-	})
-
-	return
-}
-
-func (c *WebSocketHandler) handleBinaryLogin(
-	conn *im_conn.AttachmentConn,
-	msg *tursom_im_protobuf.ImMsg,
-) (loginResult *tursom_im_protobuf.ImMsg_LoginResult) {
-	if c == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
-	loginResult = &tursom_im_protobuf.ImMsg_LoginResult{
-		LoginResult: &tursom_im_protobuf.LoginResult{},
-	}
-
-	token, err := c.globalContext.TokenContext().Parse(msg.GetLoginRequest().Token)
-	if err != nil {
-		exceptions.Print(err)
-		return
-	}
-
-	userIdAttr := c.globalContext.AttrContext().UserIdAttrKey().Get(conn)
-	userTokenAttr := c.globalContext.AttrContext().UserTokenAttrKey().Get(conn)
-
-	uid := token.Uid
-	if msg.GetLoginRequest().TempId {
-		uid = uid + "-" + c.globalContext.MsgIdContext().NewMsgIdStr()
-	}
-
-	userIdAttr.Set(lang.NewString(uid))
-	userTokenAttr.Set(token)
-
-	connGroup := c.globalContext.UserConnContext().TouchUserConn(uid)
-	connGroup.Add(conn)
-	conn.AddEventListener(func(event im_conn.ConnEvent) {
-		if !event.EventId().IsConnClosed() || connGroup.Size() != 0 {
-			return
-		}
-		c.globalContext.UserConnContext().RemoveUserConn(uid)
-	})
-
-	loginResult.LoginResult.ImUserId = uid
-	loginResult.LoginResult.Success = true
-
-	return
 }

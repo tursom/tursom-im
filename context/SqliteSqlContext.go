@@ -14,21 +14,13 @@ type SqliteSqlContext struct {
 }
 
 func NewSqliteSqlContext() *SqliteSqlContext {
-	db, err := sql.Open("sqlite3", "im.db")
-	if err != nil {
-		exceptions.Print(err)
-		return nil
-	}
+	db := exceptions.Exec2r1(sql.Open, "sqlite3", "im.db")
 	db.SetMaxOpenConns(1)
 	s := &SqliteSqlContext{
 		db:               db,
 		userTableContext: NewSqliteUserTableContext(db),
 	}
-	err = s.userTableContext.CreateTable()
-	if err != nil {
-		exceptions.Print(err)
-		return nil
-	}
+	exceptions.Exec0r0(s.userTableContext.CreateTable)
 	return s
 }
 

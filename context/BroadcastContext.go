@@ -2,6 +2,7 @@ package context
 
 import (
 	"github.com/tursom-im/im_conn"
+	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"sync"
@@ -12,7 +13,7 @@ import (
 type BroadcastContext struct {
 	lang.BaseObject
 	channelGroupMap map[int32]*im_conn.ConnGroup
-	mutex           *sync.RWMutex
+	mutex           concurrent.RWLock
 }
 
 func NewBroadcastContext() *BroadcastContext {
