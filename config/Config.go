@@ -8,36 +8,38 @@ import (
 	"strings"
 )
 
-type Config struct {
-	lang.BaseObject `yaml:"-" json:"-"`
-	Admin           AdminConfig  `yaml:"admin" json:"admin"`
-	Server          ServerConfig `yaml:"server" json:"server"`
-	SSL             SSL          `yaml:"ssl" json:"ssl"`
-	Node            NodeConfig   `yaml:"node" json:"node"`
-}
+type (
+	Config struct {
+		lang.BaseObject `yaml:"-" json:"-"`
+		Admin           AdminConfig  `yaml:"admin" json:"admin"`
+		Server          ServerConfig `yaml:"server" json:"server"`
+		SSL             SSL          `yaml:"ssl" json:"ssl"`
+		Node            NodeConfig   `yaml:"node" json:"node"`
+	}
 
-type AdminConfig struct {
-	lang.BaseObject `yaml:"-" json:"-"`
-	Id              string `yaml:"id" json:"id"`
-	Password        string `yaml:"password" json:"password"`
-}
+	AdminConfig struct {
+		lang.BaseObject `yaml:"-" json:"-"`
+		Id              string `yaml:"id" json:"id"`
+		Password        string `yaml:"password" json:"password"`
+	}
 
-type ServerConfig struct {
-	lang.BaseObject `yaml:"-" json:"-"`
-	Port            int `yaml:"port" json:"port"`
-}
+	ServerConfig struct {
+		lang.BaseObject `yaml:"-" json:"-"`
+		Port            int `yaml:"port" json:"port"`
+	}
 
-type SSL struct {
-	lang.BaseObject `yaml:"-" json:"-"`
-	Cert            string `yaml:"cert" json:"cert"`
-	Key             string `yaml:"key" json:"key"`
-	Enable          bool   `yaml:"enable" json:"enable"`
-}
+	SSL struct {
+		lang.BaseObject `yaml:"-" json:"-"`
+		Cert            string `yaml:"cert" json:"cert"`
+		Key             string `yaml:"key" json:"key"`
+		Enable          bool   `yaml:"enable" json:"enable"`
+	}
 
-type NodeConfig struct {
-	lang.BaseObject `yaml:"-" json:"-"`
-	NodeMax         int32 `yaml:"nodeMax" json:"nodeMax"`
-}
+	NodeConfig struct {
+		lang.BaseObject `yaml:"-" json:"-"`
+		NodeMax         int32 `yaml:"nodeMax" json:"nodeMax"`
+	}
+)
 
 func NewConfig() *Config {
 	return &Config{

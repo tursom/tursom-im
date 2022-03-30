@@ -72,27 +72,23 @@ func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler
 	}
 }
 
-func (h *WebSocketHandler) InitWebHandler(basePath string, router *httprouter.Router) {
-	if h == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
+func (h *WebSocketHandler) InitWebHandler(router Router) {
+	exceptions.CheckNil(h)
 
 	if h.writeChannelList == nil {
 		writeChannelCount := int(math.Max(16, float64(runtime.NumCPU()*2)))
 		for i := 0; i < writeChannelCount; i++ {
 			writeChannel := make(chan im_conn.ConnWriteMsg, 128)
-			go handleWrite(writeChannel)
+			go im_conn.HandleWrite(writeChannel)
 			h.writeChannelList = append(h.writeChannelList, writeChannel)
 		}
 	}
 
-	router.GET(basePath+"/ws", h.UpgradeToWebSocket)
+	router.GET("/ws", h.UpgradeToWebSocket)
 }
 
 func (h *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	if h == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
+	exceptions.CheckNil(h)
 
 	conn, _, _, err := ws.UpgradeHTTP(r, w)
 	if err != nil {
@@ -102,28 +98,8 @@ func (h *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 	go h.Handle(conn)
 }
 
-func handleWrite(writeChannel chan im_conn.ConnWriteMsg) {
-	for true {
-		_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
-			writeMsg, ok := <-writeChannel
-			if !ok {
-				return nil, exceptions.NewRuntimeException(nil, "cannot receive msg from write channel", nil)
-			}
-			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
-				return nil, exceptions.Package(writeErr)
-			}
-			return
-		}, func(panic any) (ret any, err exceptions.Exception) {
-			return nil, exceptions.PackagePanic(err, "an panic caused on handle websocket write")
-		})
-		exceptions.Print(err)
-	}
-}
-
 func (h *WebSocketHandler) Handle(conn net.Conn) {
-	if h == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
+	exceptions.CheckNil(h)
 
 	writeChannelIndex := atomic.AddUint32(&h.writeChannelIndex, 1)
 	attachmentConn := im_conn.NewSimpleAttachmentConn(conn, h.writeChannelList[writeChannelIndex])
@@ -196,9 +172,7 @@ func (h *WebSocketHandler) Handle(conn net.Conn) {
 }
 
 func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
-	if h == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
+	exceptions.CheckNil(h)
 
 	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get()
 	fmt.Println("request:", sender, ":", request)
@@ -233,9 +207,7 @@ func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 }
 
 func (h *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
-	if h == nil {
-		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
-	}
+	exceptions.CheckNil(h)
 
 	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
 	currentConn := h.globalContext.UserConnContext().GetUserConn(sender)

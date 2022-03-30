@@ -8,11 +8,14 @@ import (
 	"time"
 )
 
-const incrementBase = 0x2000
-const machineIdMask = 0x1FFF
-const machineIdLength = 13
-const incrementLength = 7
-const timestampMask = 0x7f_ff_ff_ff_ff_ff_ff_ff
+const (
+	incrementBase   = 0x2000
+	machineIdMask   = 0x1FFF
+	machineIdLength = 13
+	incrementLength = 7
+	timestampMask   = 0x7f_ff_ff_ff_ff_ff_ff_ff
+	base62Digits    = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+)
 
 type MsgIdContext struct {
 	lang.BaseObject
@@ -38,8 +41,6 @@ func NewMsgIdContext() *MsgIdContext {
 
 	return msgContext
 }
-
-const base62Digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 func base62(i uint64, builder *strings.Builder) *strings.Builder {
 	if i == 0 {

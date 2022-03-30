@@ -1,9 +1,9 @@
 package im_conn
 
 import (
+	"github.com/gobwas/ws/wsutil"
 	"github.com/tursom-im/exception"
 	"github.com/tursom/GoCollections/collections"
-	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"net"
@@ -23,8 +23,9 @@ type (
 
 	ConnWriteMsg struct {
 		lang.BaseObject
-		Conn *AttachmentConn
-		Data []byte
+		Conn       *AttachmentConn
+		Data       []byte
+		ErrHandler func(err exceptions.Exception)
 	}
 
 	Attachment[T any] struct {
@@ -35,20 +36,41 @@ type (
 
 	EventListener struct {
 		lang.BaseObject
-		eventListenerList collections.MutableList[*EventListener]
-		listener          func(event ConnEvent)
-		lock              concurrent.RWLock
+		listener func(event ConnEvent)
+		node     collections.ConcurrentLinkedQueueNode[*EventListener]
 	}
 
 	AttachmentConn struct {
 		lang.BaseObject
-		conn              net.Conn
 		attachment        *sync.Map
-		eventListenerList collections.MutableList[*EventListener]
+		conn              net.Conn
+		eventListenerList collections.ConcurrentLinkedQueue[*EventListener]
 		writeChannel      chan ConnWriteMsg
-		lock              concurrent.RWLock
 	}
 )
+
+func HandleWrite(writeChannel <-chan ConnWriteMsg) {
+	for true {
+		_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
+			writeMsg, ok := <-writeChannel
+			if !ok {
+				return nil, exceptions.NewRuntimeException(nil, "cannot receive msg from write channel", nil)
+			}
+			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
+				err = exceptions.Package(writeErr)
+				if writeMsg.ErrHandler != nil {
+					writeMsg.ErrHandler(err)
+					err = nil
+				}
+				return
+			}
+			return
+		}, func(panic any) (ret any, err exceptions.Exception) {
+			return nil, exceptions.PackagePanic(err, "an panic caused on handle websocket write")
+		})
+		exceptions.Print(err)
+	}
+}
 
 func (a *AttachmentKey[T]) Name() string {
 	if a == nil {
@@ -78,9 +100,7 @@ func (l *EventListener) Remove() exceptions.Exception {
 	if l == nil {
 		return nil
 	}
-	l.lock.Lock()
-	defer l.lock.Unlock()
-	return l.eventListenerList.Remove(l)
+	return l.node.Remove()
 }
 
 func (c *AttachmentConn) WriteChannel() chan<- ConnWriteMsg {
@@ -98,22 +118,12 @@ func NewAttachmentKey[T any](name string) AttachmentKey[T] {
 	}
 }
 
-func NewAttachmentConn(conn net.Conn, attachment *sync.Map, writeChannel chan ConnWriteMsg) *AttachmentConn {
-	if attachment != nil {
-		var newMap sync.Map
-		attachment = &newMap
-	}
-	return &AttachmentConn{
-		conn:              conn,
-		attachment:        attachment,
-		eventListenerList: collections.NewArrayList[*EventListener](),
-		writeChannel:      writeChannel,
-		lock:              concurrent.NewReentrantRWLock(),
-	}
-}
-
 func NewSimpleAttachmentConn(conn net.Conn, writeChannel chan ConnWriteMsg) *AttachmentConn {
-	return NewAttachmentConn(conn, nil, writeChannel)
+	return &AttachmentConn{
+		conn:         conn,
+		attachment:   new(sync.Map),
+		writeChannel: writeChannel,
+	}
 }
 
 //  syntax error: method must have no type parameters
@@ -131,10 +141,7 @@ func (c *AttachmentConn) notify(event ConnEvent) {
 	if c == nil {
 		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-
-	err := collections.Loop[*EventListener](c.eventListenerList, func(element *EventListener) exceptions.Exception {
+	err := collections.Loop[*EventListener](&c.eventListenerList, func(element *EventListener) exceptions.Exception {
 		_, _ = exceptions.Try(func() (ret any, err exceptions.Exception) {
 			element.listener(event)
 			return
@@ -155,11 +162,9 @@ func (c *AttachmentConn) AddEventListener(f func(event ConnEvent)) (listener *Ev
 	if c == nil {
 		panic(exceptions.NewNPE("AttachmentConn is null", nil))
 	}
-	c.lock.Lock()
-	defer c.lock.Unlock()
 	if f != nil {
-		listener = &EventListener{eventListenerList: c.eventListenerList, listener: f, lock: c.lock}
-		c.eventListenerList.Add(listener)
+		listener = &EventListener{listener: f}
+		listener.node = exceptions.Exec1r1(c.eventListenerList.OfferAndGetNode, listener)
 	}
 	return
 }

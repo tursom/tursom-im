@@ -20,16 +20,17 @@ func NewTokenHandler(ctx *context.GlobalContext) *TokenHandler {
 	}
 }
 
-func (t *TokenHandler) InitWebHandler(basePath string, router *httprouter.Router) {
-	router.POST(basePath+"/token", t.FlushToken)
-	router.PUT(basePath+"/user", t.NewUser)
+func (h *TokenHandler) InitWebHandler(router Router) {
+	router.POST("/token", h.FlushToken)
+	router.PUT("/user", h.NewUser)
 }
 
-func (t *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	exceptions.CheckNil(h)
 	var err error = nil
 	defer handleError(w, err)
 
-	appId := t.globalContext.Config().Admin.CheckAdmin(r)
+	appId := h.globalContext.Config().Admin.CheckAdmin(r)
 	if appId == nil {
 		w.WriteHeader(502)
 		return
@@ -40,7 +41,7 @@ func (t *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ http
 		w.WriteHeader(400)
 		return
 	}
-	token, err := t.globalContext.TokenContext().FlushToken(uid[0])
+	token, err := h.globalContext.TokenContext().FlushToken(uid[0])
 	if err != nil {
 		err = exceptions.Package(err)
 		exceptions.Print(err)
@@ -59,17 +60,18 @@ func (t *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ http
 	}
 }
 
-func (t *TokenHandler) NewUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *TokenHandler) NewUser(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	exceptions.CheckNil(h)
 	var err error = nil
 	defer handleError(w, err)
 
-	appId := t.globalContext.Config().Admin.CheckAdmin(r)
+	appId := h.globalContext.Config().Admin.CheckAdmin(r)
 	if appId == nil {
 		w.WriteHeader(502)
 		return
 	}
 
-	user, err := t.globalContext.SqlContext().GetUserTableContext().CreateUser()
+	user, err := h.globalContext.SqlContext().GetUserTableContext().CreateUser()
 	if err != nil {
 		err = exceptions.Package(err)
 		exceptions.Print(err)

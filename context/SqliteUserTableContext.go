@@ -17,16 +17,18 @@ const (
 	rowUserQuery  = `select id,token from user where id=?`
 )
 
-type SqliteUserTableContext struct {
-	lang.BaseObject
-	db           *sql.DB
-	msgIdContext *MsgIdContext
-}
+type (
+	SqliteUserTableContext struct {
+		lang.BaseObject
+		db           *sql.DB
+		msgIdContext *MsgIdContext
+	}
 
-type UserNotFoundError struct {
-	exceptions.RuntimeException
-	uid string
-}
+	UserNotFoundError struct {
+		exceptions.RuntimeException
+		uid string
+	}
+)
 
 func (u *UserNotFoundError) Error() string {
 	return "user \"" + u.uid + "\" not found"

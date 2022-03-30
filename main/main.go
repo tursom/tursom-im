@@ -49,8 +49,8 @@ func main() {
 	tokenHandler := handler.NewTokenHandler(globalContext)
 
 	router := httprouter.New()
-	tokenHandler.InitWebHandler("", router)
-	webSocketHandler.InitWebHandler("", router)
+	tokenHandler.InitWebHandler(router)
+	webSocketHandler.InitWebHandler(router)
 
 	fmt.Println("server will start on port " + strconv.Itoa(cfg.Server.Port))
 	runServer(cfg, router)

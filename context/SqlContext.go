@@ -6,32 +6,34 @@ import (
 	"github.com/tursom/GoCollections/lang"
 )
 
-type SqlContext interface {
-	lang.Object
-	GetDB() *sql.DB
-	GetUserTableContext() UserTableContext
-	Init(ctx *GlobalContext)
-}
+type (
+	SqlContext interface {
+		lang.Object
+		GetDB() *sql.DB
+		GetUserTableContext() UserTableContext
+		Init(ctx *GlobalContext)
+	}
 
-type Table interface {
-	lang.Object
-	CreateTable() exceptions.Exception
-}
+	Table interface {
+		lang.Object
+		CreateTable() exceptions.Exception
+	}
 
-type UserTableContext interface {
-	lang.Object
-	Table
-	CreateUser() (*User, exceptions.Exception)
-	FindById(uid string) (*User, exceptions.Exception)
-	GetToken(uid string) (*[]string, exceptions.Exception)
-	PushToken(uid string, token string) exceptions.Exception
-}
+	UserTableContext interface {
+		lang.Object
+		Table
+		CreateUser() (*User, exceptions.Exception)
+		FindById(uid string) (*User, exceptions.Exception)
+		GetToken(uid string) (*[]string, exceptions.Exception)
+		PushToken(uid string, token string) exceptions.Exception
+	}
 
-type User struct {
-	lang.BaseObject
-	id    string
-	token []string
-}
+	User struct {
+		lang.BaseObject
+		id    string
+		token []string
+	}
+)
 
 func (u *User) Id() string {
 	return u.id

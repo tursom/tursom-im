@@ -3,6 +3,7 @@ package handler
 import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/tursom-im/context"
+	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ func (h *CommandHandler) InitWebHandler(basePath string, router *httprouter.Rout
 }
 
 func (h *CommandHandler) CloseServer(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	exceptions.CheckNil(h)
 	var err error = nil
 	defer handleError(w, err)
 
