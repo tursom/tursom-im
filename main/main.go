@@ -42,7 +42,7 @@ func main() {
 
 	globalContext := context.NewGlobalContext(cfg)
 	if globalContext == nil {
-		panic(exceptions.NewRuntimeException(nil, "init GlobalContext failed", nil))
+		panic(exceptions.NewRuntimeException("", nil))
 	}
 
 	webSocketHandler := handler.NewWebSocketHandler(globalContext)

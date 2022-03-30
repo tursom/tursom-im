@@ -6,12 +6,9 @@ type UnsupportedException struct {
 	exceptions.RuntimeException
 }
 
-func NewUnsupportedException(message any) UnsupportedException {
+func NewUnsupportedException(message string) UnsupportedException {
 	return UnsupportedException{
-		exceptions.NewRuntimeException(
-			message,
-			"exception caused UnsupportedException:",
-			nil,
-		),
+		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
+			SetExceptionName("UnsupportedException")),
 	}
 }

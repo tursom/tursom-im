@@ -6,12 +6,9 @@ type UserNotFoundException struct {
 	exceptions.RuntimeException
 }
 
-func NewUserNotFoundException(message any) UserNotFoundException {
+func NewUserNotFoundException(message string) UserNotFoundException {
 	return UserNotFoundException{
-		exceptions.NewRuntimeException(
-			message,
-			"exception caused TokenSigException:",
-			nil,
-		),
+		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
+			SetExceptionName("UserNotFoundException")),
 	}
 }

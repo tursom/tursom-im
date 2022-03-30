@@ -54,7 +54,7 @@ func HandleWrite(writeChannel <-chan ConnWriteMsg) {
 		_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
 			writeMsg, ok := <-writeChannel
 			if !ok {
-				return nil, exceptions.NewRuntimeException(nil, "cannot receive msg from write channel", nil)
+				return nil, exceptions.NewRuntimeException("", nil)
 			}
 			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
 				err = exceptions.Package(writeErr)
@@ -146,11 +146,7 @@ func (c *AttachmentConn) notify(event ConnEvent) {
 			element.listener(event)
 			return
 		}, func(panic any) (ret any, err exceptions.Exception) {
-			exceptions.NewRuntimeException(
-				panic,
-				"an exception caused on call ConnEvent listener:",
-				exceptions.DefaultExceptionConfig().SetCause(panic),
-			).PrintStackTrace()
+			exceptions.NewRuntimeException("", exceptions.DefaultExceptionConfig().SetCause(panic)).PrintStackTrace()
 			return
 		})
 		return nil

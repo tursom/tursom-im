@@ -6,12 +6,9 @@ type InvalidTypeException struct {
 	exceptions.RuntimeException
 }
 
-func NewInvalidTypeException(message any) InvalidTypeException {
+func NewInvalidTypeException(message string) InvalidTypeException {
 	return InvalidTypeException{
-		exceptions.NewRuntimeException(
-			message,
-			"exception caused InvalidTypeException:",
-			nil,
-		),
+		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
+			SetExceptionName("InvalidTypeException")),
 	}
 }

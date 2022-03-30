@@ -6,12 +6,9 @@ type IllegalParameterException struct {
 	exceptions.RuntimeException
 }
 
-func NewIllegalParameterException(message any, config *exceptions.ExceptionConfig) *IllegalParameterException {
+func NewIllegalParameterException(message string, config *exceptions.ExceptionConfig) *IllegalParameterException {
 	return &IllegalParameterException{
-		exceptions.NewRuntimeException(
-			message,
-			"exception caused ElementNotFoundException:",
-			config.AddSkipStack(1),
-		),
+		exceptions.NewRuntimeException(message, config.AddSkipStack(1).
+			SetExceptionName("IllegalParameterException")),
 	}
 }

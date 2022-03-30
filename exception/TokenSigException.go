@@ -6,12 +6,9 @@ type TokenSigException struct {
 	exceptions.RuntimeException
 }
 
-func NewTokenSigException(message any) TokenSigException {
+func NewTokenSigException(message string) TokenSigException {
 	return TokenSigException{
-		exceptions.NewRuntimeException(
-			message,
-			"exception caused TokenSigException:",
-			nil,
-		),
+		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
+			SetExceptionName("TokenSigException")),
 	}
 }

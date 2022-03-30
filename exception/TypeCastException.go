@@ -11,13 +11,10 @@ type TypeCastException struct {
 	exceptions.RuntimeException
 }
 
-func NewTypeCastException(message any, config *exceptions.ExceptionConfig) *TypeCastException {
+func NewTypeCastException(message string, config *exceptions.ExceptionConfig) *TypeCastException {
 	return &TypeCastException{
-		exceptions.NewRuntimeException(
-			message,
-			"exception caused ElementNotFoundException:",
-			config.AddSkipStack(1),
-		),
+		exceptions.NewRuntimeException(message, config.AddSkipStack(1).
+			SetExceptionName("TypeCastException")),
 	}
 }
 
