@@ -7,7 +7,7 @@ import (
 	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
-	"google.golang.org/protobuf/proto"
+	"github.com/tursom/GoCollections/util"
 )
 
 type allocateNodeRequestHandler struct {
@@ -23,43 +23,21 @@ func init() {
 	})
 }
 
-func (h *allocateNodeRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx *handler.MsgHandlerContext) (ok bool) {
+func (h *allocateNodeRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
-	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_SendBroadcastRequest); ok {
+	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_AllocateNodeRequest); !ok {
 		return
 	}
 
-	sendBroadcastRequest := msg.GetSendBroadcastRequest()
-	response := &tursom_im_protobuf.SendBroadcastResponse{
-		ReqId: sendBroadcastRequest.ReqId,
+	allocateNodeResponse := &tursom_im_protobuf.AllocateNodeResponse{
+		ReqId: msg.GetAllocateNodeRequest().ReqId,
 	}
-	ctx.Response.Content = &tursom_im_protobuf.ImMsg_SendBroadcastResponse{
-		SendBroadcastResponse: response,
+	handler.ResponseCtxKey.Get(ctx).Content = &tursom_im_protobuf.ImMsg_AllocateNodeResponse{
+		AllocateNodeResponse: allocateNodeResponse,
 	}
 
-	broadcast := &tursom_im_protobuf.ImMsg{
-		MsgId: h.globalContext.MsgIdContext().NewMsgIdStr(),
-		Content: &tursom_im_protobuf.ImMsg_Broadcast{Broadcast: &tursom_im_protobuf.Broadcast{
-			Sender:  h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString(),
-			ReqId:   sendBroadcastRequest.ReqId,
-			Channel: sendBroadcastRequest.Channel,
-			Content: sendBroadcastRequest.Content,
-		}},
-	}
-	bytes, err := proto.Marshal(broadcast)
-	if err != nil {
-		exceptions.Print(err)
-	} else {
-		response.ReceiverCount = h.globalContext.BroadcastContext().Send(
-			sendBroadcastRequest.Channel,
-			bytes,
-			//nil,
-			func(c *im_conn.AttachmentConn) bool {
-				return c != conn
-			},
-		)
-	}
+	allocateNodeResponse.Node = h.globalContext.ConnNodeContext().Allocate(conn)
 	return
 }

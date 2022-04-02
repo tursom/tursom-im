@@ -13,6 +13,7 @@ import (
 	"github.com/tursom-im/utils"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+	"github.com/tursom/GoCollections/util"
 	"math"
 	"net"
 	"net/http"
@@ -22,13 +23,16 @@ import (
 	"sync/atomic"
 )
 
-type (
-	MsgHandlerContext struct {
-		lang.Object
-		Response        *tursom_im_protobuf.ImMsg
-		CloseConnection bool
-	}
+var (
+	imHandlerFactories []func(ctx *context.GlobalContext) ImMsgHandler
+	imHandlerContext   = util.NewContext()
+	ResponseCtxKey     = util.AllocateContextKeyWithDefault[*tursom_im_protobuf.ImMsg](imHandlerContext, func() *tursom_im_protobuf.ImMsg {
+		return &tursom_im_protobuf.ImMsg{}
+	})
+	CloseConnectionCtxKey = util.AllocateContextKey[bool](imHandlerContext)
+)
 
+type (
 	// ImMsgHandler shows an object that can handle im msg
 	// default im handlers on package handler/msg, you need to run msg.Init() to initial imHandlerFactories
 	ImMsgHandler interface {
@@ -36,20 +40,18 @@ type (
 		HandleMsg(
 			conn *im_conn.AttachmentConn,
 			msg *tursom_im_protobuf.ImMsg,
-			ctx *MsgHandlerContext,
+			ctx util.ContextMap,
 		) (ok bool)
 	}
 
 	WebSocketHandler struct {
 		lang.BaseObject
 		globalContext     *context.GlobalContext
-		writeChannelList  []chan im_conn.ConnWriteMsg
+		writeChannelList  []chan *im_conn.ConnWriteMsg
 		writeChannelIndex uint32
 		handlers          []ImMsgHandler
 	}
 )
-
-var imHandlerFactories []func(ctx *context.GlobalContext) ImMsgHandler
 
 func RegisterImHandlerFactory(handlerFactory func(ctx *context.GlobalContext) ImMsgHandler) {
 	imHandlerFactories = append(imHandlerFactories, handlerFactory)
@@ -78,7 +80,7 @@ func (h *WebSocketHandler) InitWebHandler(router Router) {
 	if h.writeChannelList == nil {
 		writeChannelCount := int(math.Max(16, float64(runtime.NumCPU()*2)))
 		for i := 0; i < writeChannelCount; i++ {
-			writeChannel := make(chan im_conn.ConnWriteMsg, 128)
+			writeChannel := make(chan *im_conn.ConnWriteMsg, 128)
 			go im_conn.HandleWrite(writeChannel)
 			h.writeChannelList = append(h.writeChannelList, writeChannel)
 		}
@@ -114,6 +116,7 @@ func (h *WebSocketHandler) Handle(conn net.Conn) {
 		exceptions.PackageAny("watch dog register failed").PrintStackTrace()
 		return
 	}
+	defer watchDog.Kill()
 
 	for {
 		_, err := exceptions.Try(func() (any, exceptions.Exception) {
@@ -174,14 +177,15 @@ func (h *WebSocketHandler) Handle(conn net.Conn) {
 func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
 	exceptions.CheckNil(h)
 
-	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get()
-	fmt.Println("request:", sender, ":", request)
-	response := tursom_im_protobuf.ImMsg{}
-	ctx := &MsgHandlerContext{
-		Response: &response,
+	sender, login := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).TryGet()
+	if login {
+		fmt.Println("request:", sender, ":", request)
+	} else {
+		fmt.Println("request:", request)
 	}
+	ctx := imHandlerContext.NewMap()
 	defer func() {
-		if ctx.CloseConnection {
+		if CloseConnectionCtxKey.Get(ctx) {
 			_ = conn.Close()
 		}
 	}()
@@ -197,8 +201,13 @@ func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 		}
 	}
 
-	fmt.Println("response:", sender, ":", &response)
-	bytes, err := proto.Marshal(&response)
+	response := ResponseCtxKey.Get(ctx)
+	if login {
+		fmt.Println("response:", sender, ":", response)
+	} else {
+		fmt.Println("response:", response)
+	}
+	bytes, err := proto.Marshal(response)
 	if err != nil {
 		exceptions.Print(err)
 		return

@@ -4,6 +4,7 @@ import (
 	"github.com/tursom-im/im_conn"
 	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/lang"
+	"sync"
 )
 
 type UserConnContext struct {
@@ -14,10 +15,10 @@ type UserConnContext struct {
 }
 
 func NewUserConnContext() *UserConnContext {
-	return &UserConnContext{connMap: make(map[string]*im_conn.ConnGroup), attrContext: nil}
+	return &UserConnContext{connMap: make(map[string]*im_conn.ConnGroup), lock: &sync.RWMutex{}}
 }
 
-func (c UserConnContext) Init(ctx *GlobalContext) {
+func (c *UserConnContext) Init(ctx *GlobalContext) {
 	c.attrContext = ctx.attrContext
 }
 

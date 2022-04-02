@@ -25,7 +25,11 @@ func NewSqliteSqlContext() *SqliteSqlContext {
 }
 
 func (s *SqliteSqlContext) Init(ctx *GlobalContext) {
-	s.userTableContext.Init(ctx)
+	s.init(ctx.msgIdContext)
+}
+
+func (s *SqliteSqlContext) init(msgIdContext *MsgIdContext) {
+	s.userTableContext.init(msgIdContext)
 }
 
 func (s *SqliteSqlContext) GetDB() *sql.DB {

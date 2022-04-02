@@ -9,6 +9,6 @@ type UserNotFoundException struct {
 func NewUserNotFoundException(message string) UserNotFoundException {
 	return UserNotFoundException{
 		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
-			SetExceptionName("UserNotFoundException")),
+			SetExceptionName("github.com.tursom.tursom-im.exception.UserNotFoundException")),
 	}
 }

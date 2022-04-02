@@ -7,6 +7,7 @@ import (
 	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+	"github.com/tursom/GoCollections/util"
 )
 
 type loginRequestHandler struct {
@@ -22,7 +23,7 @@ func init() {
 	})
 }
 
-func (h *loginRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx *handler.MsgHandlerContext) (ok bool) {
+func (h *loginRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
@@ -32,7 +33,7 @@ func (h *loginRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *turso
 	}
 
 	loginResult := &tursom_im_protobuf.LoginResult{}
-	ctx.Response.Content = &tursom_im_protobuf.ImMsg_LoginResult{LoginResult: loginResult}
+	handler.ResponseCtxKey.Get(ctx).Content = &tursom_im_protobuf.ImMsg_LoginResult{LoginResult: loginResult}
 
 	token, err := h.globalContext.TokenContext().Parse(msg.GetLoginRequest().Token)
 	if err != nil {

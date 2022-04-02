@@ -9,6 +9,6 @@ type TokenParseException struct {
 func NewTokenParseException(message string) TokenParseException {
 	return TokenParseException{
 		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
-			SetExceptionName("TokenParseException")),
+			SetExceptionName("github.com.tursom.tursom-im.exception.TokenParseException")),
 	}
 }

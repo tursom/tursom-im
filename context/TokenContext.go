@@ -21,7 +21,11 @@ func NewTokenContext() *TokenContext {
 }
 
 func (c *TokenContext) Init(ctx *GlobalContext) {
-	c.sqlContext = ctx.sqlContext
+	c.init(ctx.sqlContext)
+}
+
+func (c *TokenContext) init(sqlContext SqlContext) {
+	c.sqlContext = sqlContext
 }
 
 func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, exceptions.Exception) {

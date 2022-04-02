@@ -7,6 +7,7 @@ import (
 	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+	"github.com/tursom/GoCollections/util"
 )
 
 type listenBroadcastRequestHandler struct {
@@ -22,11 +23,11 @@ func init() {
 	})
 }
 
-func (h *listenBroadcastRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx *handler.MsgHandlerContext) (ok bool) {
+func (h *listenBroadcastRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
-	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_ListenBroadcastRequest); ok {
+	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_ListenBroadcastRequest); !ok {
 		return
 	}
 
@@ -34,7 +35,7 @@ func (h *listenBroadcastRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, 
 	response := &tursom_im_protobuf.ListenBroadcastResponse{
 		ReqId: listenBroadcastRequest.ReqId,
 	}
-	ctx.Response.Content = &tursom_im_protobuf.ImMsg_ListenBroadcastResponse{
+	handler.ResponseCtxKey.Get(ctx).Content = &tursom_im_protobuf.ImMsg_ListenBroadcastResponse{
 		ListenBroadcastResponse: response,
 	}
 

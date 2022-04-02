@@ -7,6 +7,7 @@ import (
 	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+	"github.com/tursom/GoCollections/util"
 )
 
 type sendMsgRequestHandler struct {
@@ -22,7 +23,7 @@ func init() {
 	})
 }
 
-func (h *sendMsgRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx *handler.MsgHandlerContext) (ok bool) {
+func (h *sendMsgRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
@@ -33,7 +34,10 @@ func (h *sendMsgRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tur
 
 	response := &tursom_im_protobuf.SendMsgResponse{}
 	msgId := h.globalContext.MsgIdContext().NewMsgIdStr()
-	ctx.Response.Content, ctx.Response.MsgId = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: response}, msgId
+	{
+		r := handler.ResponseCtxKey.Get(ctx)
+		r.Content, r.MsgId = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: response}, msgId
+	}
 
 	sendMsgRequest := msg.GetSendMsgRequest()
 	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()

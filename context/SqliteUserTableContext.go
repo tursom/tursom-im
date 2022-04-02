@@ -38,6 +38,10 @@ func (s *SqliteUserTableContext) Init(ctx *GlobalContext) {
 	s.msgIdContext = ctx.msgIdContext
 }
 
+func (s *SqliteUserTableContext) init(msgIdContext *MsgIdContext) {
+	s.msgIdContext = msgIdContext
+}
+
 func (s *SqliteUserTableContext) CreateTable() exceptions.Exception {
 	_, err := s.db.Exec(tableUserCreate)
 	return exceptions.Package(err)

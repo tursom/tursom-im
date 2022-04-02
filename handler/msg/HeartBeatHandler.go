@@ -6,6 +6,7 @@ import (
 	"github.com/tursom-im/im_conn"
 	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/lang"
+	"github.com/tursom/GoCollections/util"
 )
 
 type heartBeatHandler struct {
@@ -18,10 +19,10 @@ func init() {
 	})
 }
 
-func (h *heartBeatHandler) HandleMsg(_ *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx *handler.MsgHandlerContext) (ok bool) {
-	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_HeartBeat); ok {
+func (h *heartBeatHandler) HandleMsg(_ *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
+	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_HeartBeat); !ok {
 		return
 	}
-	ctx.Response.Content = msg.Content
+	handler.ResponseCtxKey.Get(ctx).Content = msg.Content
 	return
 }

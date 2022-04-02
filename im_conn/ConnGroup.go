@@ -9,10 +9,6 @@ import (
 	"github.com/tursom/GoCollections/lang"
 )
 
-type void struct{}
-
-var member void
-
 type ConnGroup struct {
 	lang.BaseObject
 	lock     concurrent.RWLock

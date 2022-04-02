@@ -2,7 +2,6 @@ package im_conn
 
 import (
 	"github.com/gobwas/ws/wsutil"
-	"github.com/tursom-im/exception"
 	"github.com/tursom/GoCollections/collections"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
@@ -42,14 +41,14 @@ type (
 
 	AttachmentConn struct {
 		lang.BaseObject
-		attachment        *sync.Map
 		conn              net.Conn
+		writeChannel      chan *ConnWriteMsg
+		attachment        sync.Map
 		eventListenerList collections.ConcurrentLinkedQueue[*EventListener]
-		writeChannel      chan ConnWriteMsg
 	}
 )
 
-func HandleWrite(writeChannel <-chan ConnWriteMsg) {
+func HandleWrite(writeChannel <-chan *ConnWriteMsg) {
 	for true {
 		_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
 			writeMsg, ok := <-writeChannel
@@ -92,7 +91,7 @@ func (a *AttachmentKey[T]) Get(c *AttachmentConn) *Attachment[T] {
 	}
 	return &Attachment[T]{
 		key:        a,
-		attachment: c.attachment,
+		attachment: &c.attachment,
 	}
 }
 
@@ -103,12 +102,12 @@ func (l *EventListener) Remove() exceptions.Exception {
 	return l.node.Remove()
 }
 
-func (c *AttachmentConn) WriteChannel() chan<- ConnWriteMsg {
+func (c *AttachmentConn) WriteChannel() chan<- *ConnWriteMsg {
 	return c.writeChannel
 }
 
 func (c *AttachmentConn) WriteData(data []byte) {
-	c.writeChannel <- ConnWriteMsg{Conn: c, Data: data}
+	c.writeChannel <- &ConnWriteMsg{Conn: c, Data: data}
 }
 
 func NewAttachmentKey[T any](name string) AttachmentKey[T] {
@@ -118,10 +117,9 @@ func NewAttachmentKey[T any](name string) AttachmentKey[T] {
 	}
 }
 
-func NewSimpleAttachmentConn(conn net.Conn, writeChannel chan ConnWriteMsg) *AttachmentConn {
+func NewSimpleAttachmentConn(conn net.Conn, writeChannel chan *ConnWriteMsg) *AttachmentConn {
 	return &AttachmentConn{
 		conn:         conn,
-		attachment:   new(sync.Map),
 		writeChannel: writeChannel,
 	}
 }
@@ -231,9 +229,18 @@ func (a *Attachment[T]) Get() T {
 	load, _ := a.attachment.Load(a.key.id)
 	value, ok := load.(T)
 	if !ok {
-		panic(exception.NewTypeCastExceptionByType[T](load, nil))
+		panic(exceptions.NewTypeCastExceptionByType[T](load, nil))
 	}
 	return value
+}
+
+func (a *Attachment[T]) TryGet() (T, bool) {
+	if a == nil {
+		panic(exceptions.NewNPE("AttachmentConn is null", nil))
+	}
+	load, _ := a.attachment.Load(a.key.id)
+	value, ok := load.(T)
+	return value, ok
 }
 
 func (a *Attachment[T]) Set(value T) {

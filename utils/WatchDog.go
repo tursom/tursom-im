@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	"github.com/tursom-im/exception"
 	"github.com/tursom/GoCollections/collections"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
@@ -13,6 +12,7 @@ type WatchDog struct {
 	lang.BaseObject
 	feeding  int32
 	life     int32
+	node     collections.ConcurrentLinkedQueueNode[*WatchDog]
 	callback func() bool
 }
 
@@ -51,13 +51,15 @@ func InitWatchDog() {
 
 func NewWatchDog(life int32, callback func() bool) *WatchDog {
 	if life <= 0 {
-		panic(exception.NewIllegalParameterException(fmt.Sprintf("watch dog feed lift must more than 0"), nil))
+		panic(exceptions.NewIllegalParameterException(fmt.Sprintf("watch dog feed lift must more than 0"), nil))
 	}
 	w := &WatchDog{feeding: life, life: life, callback: callback}
-	if err := watchDogList.Push(w); err != nil {
+	node, err := watchDogList.OfferAndGetNode(w)
+	if err != nil {
 		err.PrintStackTrace()
 		return nil
 	}
+	w.node = node
 	return w
 }
 
@@ -67,4 +69,8 @@ func (w *WatchDog) Feed() {
 
 func (w WatchDog) Life() int32 {
 	return w.feeding
+}
+
+func (w *WatchDog) Kill() {
+	exceptions.Exec0r0(w.node.Remove)
 }

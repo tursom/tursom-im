@@ -9,6 +9,6 @@ type TokenSigException struct {
 func NewTokenSigException(message string) TokenSigException {
 	return TokenSigException{
 		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
-			SetExceptionName("TokenSigException")),
+			SetExceptionName("github.com.tursom.tursom-im.exception.TokenSigException")),
 	}
 }
