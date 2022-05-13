@@ -7,7 +7,7 @@ require (
 	github.com/golang/protobuf v1.5.0
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/mattn/go-sqlite3 v1.14.12
-	github.com/tursom/GoCollections v0.0.9
+	github.com/tursom/GoCollections v0.1.1
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 )

@@ -1,14 +1,16 @@
 package im_conn
 
 import (
-	"github.com/gobwas/ws/wsutil"
-	"github.com/tursom/GoCollections/collections"
-	"github.com/tursom/GoCollections/exceptions"
-	"github.com/tursom/GoCollections/lang"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/gobwas/ws/wsutil"
+	"github.com/tursom/GoCollections/collections"
+	cc "github.com/tursom/GoCollections/concurrent/collections"
+	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
 )
 
 var attachmentKeyId = int32(0)
@@ -36,7 +38,7 @@ type (
 	EventListener struct {
 		lang.BaseObject
 		listener func(event ConnEvent)
-		node     collections.ConcurrentLinkedQueueNode[*EventListener]
+		node     collections.QueueNode[*EventListener]
 	}
 
 	AttachmentConn struct {
@@ -44,7 +46,7 @@ type (
 		conn              net.Conn
 		writeChannel      chan *ConnWriteMsg
 		attachment        sync.Map
-		eventListenerList collections.ConcurrentLinkedQueue[*EventListener]
+		eventListenerList cc.ConcurrentLinkedQueue[*EventListener]
 	}
 )
 

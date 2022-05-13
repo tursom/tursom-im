@@ -2,28 +2,30 @@ package utils
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/tursom/GoCollections/collections"
+	concurrent "github.com/tursom/GoCollections/concurrent/collections"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
-	"time"
 )
 
 type WatchDog struct {
 	lang.BaseObject
 	feeding  int32
 	life     int32
-	node     collections.ConcurrentLinkedQueueNode[*WatchDog]
+	node     collections.QueueNode[*WatchDog]
 	callback func() bool
 }
 
-var watchDogList = collections.NewConcurrentLinkedQueue[*WatchDog]()
+var watchDogList concurrent.ConcurrentLinkedQueue[*WatchDog]
 
 func InitWatchDog() {
 	go func() {
 		for {
 			start := time.Now().UnixNano()
 			//fmt.Println("watch dog loop", watchDogList)
-			_ = collections.LoopMutable[*WatchDog](watchDogList, func(watchDog *WatchDog, iterator collections.MutableIterator[*WatchDog]) (err exceptions.Exception) {
+			_ = collections.LoopMutable[*WatchDog](&watchDogList, func(watchDog *WatchDog, iterator collections.MutableIterator[*WatchDog]) (err exceptions.Exception) {
 				watchDog.feeding--
 				if watchDog.feeding <= 0 {
 					watchDog.feeding = watchDog.life

@@ -19,8 +19,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
 github.com/timandy/routine v1.0.5 h1:JBVo2mOZlYVsod/v1jjmjSzxTH84x3vS9b6k4ZBTvdc=
 github.com/timandy/routine v1.0.5/go.mod h1:BT7/+zFFZkugUiUUClwDgZjQ/PNcivY1hqRLXQAftGU=
-github.com/tursom/GoCollections v0.0.9 h1:27FamfxQqOz4TmrC8qD3Mo4IX8K77ZSedb/Mwpj6Jwg=
-github.com/tursom/GoCollections v0.0.9/go.mod h1:tLxXZjgqCXReDwnIGcICKvGu9IBNzgdla+Af6bud/zo=
+github.com/tursom/GoCollections v0.1.1 h1:MsElliwAo9ggkfuAtkmNTg+ifh8d2QUvU/lqX89Ppps=
+github.com/tursom/GoCollections v0.1.1/go.mod h1:tLxXZjgqCXReDwnIGcICKvGu9IBNzgdla+Af6bud/zo=
 golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d h1:MiWWjyhUzZ+jvhZvloX6ZrUsdEghn8a64Upd8EMHglE=
 golang.org/x/sys v0.0.0-20201207223542-d4d67f95c62d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=

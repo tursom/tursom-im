@@ -2,18 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"github.com/gobwas/ws"
-	"github.com/gobwas/ws/wsutil"
-	"github.com/golang/protobuf/proto"
-	"github.com/julienschmidt/httprouter"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/exception"
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom-im/tursom_im_protobuf"
-	"github.com/tursom-im/utils"
-	"github.com/tursom/GoCollections/exceptions"
-	"github.com/tursom/GoCollections/lang"
-	"github.com/tursom/GoCollections/util"
 	"math"
 	"net"
 	"net/http"
@@ -21,6 +9,20 @@ import (
 	"reflect"
 	"runtime"
 	"sync/atomic"
+
+	"github.com/gobwas/ws"
+	"github.com/gobwas/ws/wsutil"
+	"github.com/golang/protobuf/proto"
+	"github.com/julienschmidt/httprouter"
+	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
+	"github.com/tursom/GoCollections/util"
+
+	"github.com/tursom-im/context"
+	"github.com/tursom-im/exception"
+	"github.com/tursom-im/im_conn"
+	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/utils"
 )
 
 var (
@@ -103,7 +105,7 @@ func (h *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Req
 func (h *WebSocketHandler) Handle(conn net.Conn) {
 	exceptions.CheckNil(h)
 
-	writeChannelIndex := atomic.AddUint32(&h.writeChannelIndex, 1)
+	writeChannelIndex := atomic.AddUint32(&h.writeChannelIndex, 1) % uint32(len(h.writeChannelList))
 	attachmentConn := im_conn.NewSimpleAttachmentConn(conn, h.writeChannelList[writeChannelIndex])
 	//goland:noinspection GoUnhandledErrorResult
 	defer attachmentConn.Close()
