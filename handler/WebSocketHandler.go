@@ -110,9 +110,8 @@ func (h *WebSocketHandler) Handle(conn net.Conn) {
 	//goland:noinspection GoUnhandledErrorResult
 	defer attachmentConn.Close()
 
-	watchDog := utils.NewWatchDog(60, func() bool {
+	watchDog := utils.NewWatchDog(60, func() {
 		_ = attachmentConn.Close()
-		return true
 	})
 	if watchDog == nil {
 		exceptions.PackageAny("watch dog register failed").PrintStackTrace()

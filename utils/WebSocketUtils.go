@@ -19,9 +19,9 @@ func IsClosedError(err any) bool {
 	}
 	_, ok := err.(wsutil.ClosedError)
 	ok = ok || err == io.EOF
-	{
-		_, opError := err.(net.OpError)
-		ok = ok || opError
-	}
+
+	_, opError := err.(net.OpError)
+	ok = ok || opError
+
 	return ok
 }

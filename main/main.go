@@ -17,13 +17,11 @@ import (
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
 	"github.com/tursom-im/handler/msg"
-	"github.com/tursom-im/utils"
 )
 
 func systemInit() *config.Config {
 	msg.Init()
 	rand.Seed(time.Now().UnixNano())
-	utils.InitWatchDog()
 
 	cfg := config.NewConfig()
 	configFile, err := ioutil.ReadFile("config.yaml")

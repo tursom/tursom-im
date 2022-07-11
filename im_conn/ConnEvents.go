@@ -26,20 +26,20 @@ type (
 	}
 )
 
-func (a AbstractConnEvent) EventId() EventId {
+func (a *AbstractConnEvent) EventId() EventId {
 	return a.eventId
 }
 
-func (a AbstractConnEvent) Conn() *AttachmentConn {
+func (a *AbstractConnEvent) Conn() *AttachmentConn {
 	return a.conn
 }
 
-func NewAbstractConnEvent(eventId EventId, conn *AttachmentConn) AbstractConnEvent {
-	return AbstractConnEvent{eventId: eventId, conn: conn}
+func NewAbstractConnEvent(eventId EventId, conn *AttachmentConn) *AbstractConnEvent {
+	return &AbstractConnEvent{eventId: eventId, conn: conn}
 }
 
 func NewConnClosed(conn *AttachmentConn) *ConnClosed {
-	return &ConnClosed{AbstractConnEvent: NewAbstractConnEvent(ConnClosedId, conn)}
+	return &ConnClosed{AbstractConnEvent: *NewAbstractConnEvent(ConnClosedId, conn)}
 }
 
 func (i EventId) IsConnClosed() bool {
