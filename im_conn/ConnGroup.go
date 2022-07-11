@@ -3,10 +3,11 @@ package im_conn
 import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
-	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+
+	"github.com/tursom-im/tursom_im_protobuf"
 )
 
 type ConnGroup struct {

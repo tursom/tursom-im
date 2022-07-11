@@ -2,6 +2,7 @@ package context
 
 import (
 	"database/sql"
+
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"

@@ -1,9 +1,10 @@
 package context
 
 import (
-	"github.com/tursom-im/config"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+
+	"github.com/tursom-im/config"
 )
 
 type GlobalContext struct {

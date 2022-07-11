@@ -2,11 +2,13 @@ package handler
 
 import (
 	"encoding/json"
+	"net/http"
+
 	"github.com/julienschmidt/httprouter"
-	"github.com/tursom-im/context"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
-	"net/http"
+
+	"github.com/tursom-im/context"
 )
 
 type TokenHandler struct {

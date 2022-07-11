@@ -1,11 +1,12 @@
 package config
 
 import (
+	"net/http"
+	"strings"
+
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"gopkg.in/yaml.v2"
-	"net/http"
-	"strings"
 )
 
 type (

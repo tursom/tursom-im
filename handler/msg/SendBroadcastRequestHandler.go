@@ -1,14 +1,15 @@
 package msg
 
 import (
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/tursom-im/context"
+	"github.com/tursom-im/handler"
+	"github.com/tursom-im/im_conn"
+	"github.com/tursom-im/tursom_im_protobuf"
 )
 
 type sendBroadcastRequestHandler struct {

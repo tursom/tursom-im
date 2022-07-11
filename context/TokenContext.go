@@ -3,12 +3,14 @@ package context
 import (
 	b64 "encoding/base64"
 	"fmt"
+	"math/rand"
+
 	"github.com/golang/protobuf/proto"
-	"github.com/tursom-im/exception"
-	"github.com/tursom-im/tursom_im_protobuf"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
-	"math/rand"
+
+	"github.com/tursom-im/exception"
+	"github.com/tursom-im/tursom_im_protobuf"
 )
 
 type TokenContext struct {

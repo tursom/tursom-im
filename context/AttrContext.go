@@ -1,9 +1,10 @@
 package context
 
 import (
+	"github.com/tursom/GoCollections/lang"
+
 	"github.com/tursom-im/im_conn"
 	"github.com/tursom-im/tursom_im_protobuf"
-	"github.com/tursom/GoCollections/lang"
 )
 
 type AttrContext struct {

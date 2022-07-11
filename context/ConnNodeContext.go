@@ -1,11 +1,13 @@
 package context
 
 import (
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom/GoCollections/concurrent"
-	"github.com/tursom/GoCollections/lang"
 	"math/rand"
 	"sync"
+
+	"github.com/tursom/GoCollections/concurrent"
+	"github.com/tursom/GoCollections/lang"
+
+	"github.com/tursom-im/im_conn"
 )
 
 // ConnNodeContext

@@ -1,10 +1,12 @@
 package context
 
 import (
-	"github.com/tursom-im/im_conn"
+	"sync"
+
 	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/lang"
-	"sync"
+
+	"github.com/tursom-im/im_conn"
 )
 
 type UserConnContext struct {

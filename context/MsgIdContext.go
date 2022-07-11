@@ -1,11 +1,12 @@
 package context
 
 import (
-	"github.com/tursom/GoCollections/lang"
 	"math/rand"
 	"strings"
 	"sync/atomic"
 	"time"
+
+	"github.com/tursom/GoCollections/lang"
 )
 
 const (

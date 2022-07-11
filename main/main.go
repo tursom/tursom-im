@@ -2,20 +2,22 @@ package main
 
 import (
 	"fmt"
-	"github.com/julienschmidt/httprouter"
-	_ "github.com/mattn/go-sqlite3"
-	"github.com/tursom-im/config"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	"github.com/tursom-im/handler/msg"
-	"github.com/tursom-im/utils"
-	"github.com/tursom/GoCollections/exceptions"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/julienschmidt/httprouter"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/tursom/GoCollections/exceptions"
+	"gopkg.in/yaml.v2"
+
+	"github.com/tursom-im/config"
+	"github.com/tursom-im/context"
+	"github.com/tursom-im/handler"
+	"github.com/tursom-im/handler/msg"
+	"github.com/tursom-im/utils"
 )
 
 func systemInit() *config.Config {

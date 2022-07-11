@@ -1,10 +1,11 @@
 package utils
 
 import (
-	"github.com/gobwas/ws/wsutil"
-	"github.com/tursom/GoCollections/exceptions"
 	"io"
 	"net"
+
+	"github.com/gobwas/ws/wsutil"
+	"github.com/tursom/GoCollections/exceptions"
 )
 
 func IsClosedError(err any) bool {

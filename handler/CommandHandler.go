@@ -1,12 +1,14 @@
 package handler
 
 import (
-	"github.com/julienschmidt/httprouter"
-	"github.com/tursom-im/context"
-	"github.com/tursom/GoCollections/exceptions"
-	"github.com/tursom/GoCollections/lang"
 	"net/http"
 	"os"
+
+	"github.com/julienschmidt/httprouter"
+	"github.com/tursom/GoCollections/exceptions"
+	"github.com/tursom/GoCollections/lang"
+
+	"github.com/tursom-im/context"
 )
 
 type CommandHandler struct {
