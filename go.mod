@@ -1,6 +1,6 @@
 module github.com/tursom-im
 
-go 1.18
+go 1.19
 
 require (
 	github.com/gobwas/ws v1.1.0
@@ -9,7 +9,7 @@ require (
 	github.com/libp2p/go-libp2p v0.20.3
 	github.com/mattn/go-sqlite3 v1.14.12
 	github.com/sirupsen/logrus v1.8.1
-	github.com/tursom/GoCollections v0.1.2
+	github.com/tursom/GoCollections v0.1.3
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
 )

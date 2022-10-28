@@ -8,9 +8,10 @@ import (
 
 	"github.com/gobwas/ws/wsutil"
 	"github.com/tursom/GoCollections/collections"
-	cc "github.com/tursom/GoCollections/concurrent/collections"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
+
+	cc "github.com/tursom/GoCollections/concurrent/collections"
 )
 
 var attachmentKeyId = int32(0)
@@ -51,25 +52,23 @@ type (
 )
 
 func HandleWrite(writeChannel <-chan *ConnWriteMsg) {
-	for true {
-		_, err := exceptions.Try(func() (ret any, err exceptions.Exception) {
-			writeMsg, ok := <-writeChannel
-			if !ok {
-				return nil, exceptions.NewRuntimeException("", nil)
-			}
+	for writeMsg := range writeChannel {
+		_, err := exceptions.Try[any](func() (any, exceptions.Exception) {
 			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
-				err = exceptions.Package(writeErr)
+				err := exceptions.Package(writeErr)
 				if writeMsg.ErrHandler != nil {
 					writeMsg.ErrHandler(err)
-					err = nil
+				} else {
+					err.PrintStackTrace()
 				}
-				return
 			}
-			return
+			return nil, nil
 		}, func(panic any) (ret any, err exceptions.Exception) {
-			return nil, exceptions.PackagePanic(err, "an panic caused on handle websocket write")
+			return nil, exceptions.PackageAny(panic)
 		})
-		exceptions.Print(err)
+		if err == nil {
+			err.PrintStackTrace()
+		}
 	}
 }
 

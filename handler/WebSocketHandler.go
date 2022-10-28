@@ -59,7 +59,7 @@ func RegisterImHandlerFactory(handlerFactory func(ctx *context.GlobalContext) Im
 	imHandlerFactories = append(imHandlerFactories, handlerFactory)
 }
 
-func GetImMsgHandlers(ctx *context.GlobalContext) []ImMsgHandler {
+func NewImMsgHandlers(ctx *context.GlobalContext) []ImMsgHandler {
 	handlers := make([]ImMsgHandler, len(imHandlerFactories))
 	for i, factory := range imHandlerFactories {
 		handlers[i] = factory(ctx)
@@ -72,7 +72,7 @@ func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler
 		globalContext:     globalContext,
 		writeChannelList:  nil,
 		writeChannelIndex: 0,
-		handlers:          GetImMsgHandlers(globalContext),
+		handlers:          NewImMsgHandlers(globalContext),
 	}
 }
 

@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -24,7 +24,7 @@ func systemInit() *config.Config {
 	rand.Seed(time.Now().UnixNano())
 
 	cfg := config.NewConfig()
-	configFile, err := ioutil.ReadFile("config.yaml")
+	configFile, err := os.ReadFile("config.yaml")
 	if err != nil {
 		panic(exceptions.Package(err))
 	}
@@ -37,6 +37,18 @@ func systemInit() *config.Config {
 }
 
 func main() {
+	//node, err := libp2p.New(libp2p.ChainOptions())
+	//if err != nil {
+	//	panic(err)
+	//}
+	//// 打印节点的所有地址
+	//fmt.Println("Listen addresses:", node.Addrs())
+	//// 关闭节点，然后退出
+	//if err = node.Close(); err != nil {
+	//	panic(err)
+	//}
+	//return
+
 	cfg := systemInit()
 	fmt.Println(cfg)
 

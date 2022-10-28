@@ -93,11 +93,12 @@ func (w *WatchDog) Feed() {
 }
 
 // Life get the remain life
-func (w WatchDog) Life() int32 {
+func (w *WatchDog) Life() int32 {
 	return w.feeding
 }
 
 // Kill kill this dog
 func (w *WatchDog) Kill() {
+	w.life = 0
 	w.feeding = 0
 }

@@ -1,9 +1,1 @@
-require mods:
-
-- go get github.com/golang/protobuf/proto
-- go get github.com/golang/protobuf/proto-gen-go
-- go get gopkg.in/yaml.v2
-- go get github.com/mattn/go-sqlite3
-- go get github.com/julienschmidt/httprouter
-- go get github.com/gobwas/ws
-- go get github.com/tursom/GoCollections
+## tursom-IM，一个轻量化的IM服务，主要用来转发程序控制消息
