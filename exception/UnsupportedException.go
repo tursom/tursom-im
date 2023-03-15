@@ -6,9 +6,9 @@ type UnsupportedException struct {
 	exceptions.RuntimeException
 }
 
-func NewUnsupportedException(message string) UnsupportedException {
-	return UnsupportedException{
-		exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
+func NewUnsupportedException(message string) *UnsupportedException {
+	return &UnsupportedException{
+		*exceptions.NewRuntimeException(message, exceptions.DefaultExceptionConfig().AddSkipStack(1).
 			SetExceptionName("github.com.tursom.tursom-im.exception.UnsupportedException")),
 	}
 }

@@ -88,10 +88,10 @@ func (h *WebSocketHandler) InitWebHandler(router Router) {
 		}
 	}
 
-	router.GET("/ws", h.UpgradeToWebSocket)
+	router.GET("/ws", h.clientUpgrade)
 }
 
-func (h *WebSocketHandler) UpgradeToWebSocket(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *WebSocketHandler) clientUpgrade(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	exceptions.CheckNil(h)
 
 	conn, _, _, err := ws.UpgradeHTTP(r, w)

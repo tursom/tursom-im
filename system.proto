@@ -8,3 +8,23 @@ message ImToken {
   uint64 sig = 1;
   string uid = 2;
 }
+
+message SystemMsg {
+  oneof content {
+    JoinClusterRequest joinClusterRequest = 1;
+    JoinClusterResponse joinClusterResponse = 2;
+  }
+}
+
+message JoinClusterRequest {
+  string nodeId = 1;
+  uint64 time = 2;
+  bytes sig = 3;
+  string version = 4;
+}
+
+message JoinClusterResponse {
+  bool success = 1;
+  string nodeId = 2;
+  string version = 3;
+}
