@@ -1,14 +1,14 @@
-package msg
+package handler
 
 import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
+	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/proto/pkg"
 )
 
 type allocateNodeRequestHandler struct {
@@ -17,25 +17,29 @@ type allocateNodeRequestHandler struct {
 }
 
 func init() {
-	handler.RegisterImHandlerFactory(func(ctx *context.GlobalContext) handler.ImMsgHandler {
+	handler.RegisterLogicHandlerFactory(func(ctx *context.GlobalContext) handler.IMLogicHandler {
 		return &allocateNodeRequestHandler{
 			globalContext: ctx,
 		}
 	})
 }
 
-func (h *allocateNodeRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
+func (h *allocateNodeRequestHandler) HandleMsg(
+	conn conn.Conn,
+	msg *pkg.ImMsg,
+	ctx util.ContextMap,
+) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
-	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_AllocateNodeRequest); !ok {
-		return
+	if _, ok = msg.GetContent().(*pkg.ImMsg_AllocateNodeRequest); !ok {
+		return false
 	}
 
-	allocateNodeResponse := &tursom_im_protobuf.AllocateNodeResponse{
+	allocateNodeResponse := &pkg.AllocateNodeResponse{
 		ReqId: msg.GetAllocateNodeRequest().ReqId,
 	}
-	handler.ResponseCtxKey.Get(ctx).Content = &tursom_im_protobuf.ImMsg_AllocateNodeResponse{
+	handler.ResponseCtxKey.Get(ctx).Content = &pkg.ImMsg_AllocateNodeResponse{
 		AllocateNodeResponse: allocateNodeResponse,
 	}
 

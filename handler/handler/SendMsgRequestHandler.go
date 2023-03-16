@@ -1,14 +1,14 @@
-package msg
+package handler
 
 import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
+	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/proto/pkg"
 )
 
 type sendMsgRequestHandler struct {
@@ -17,31 +17,31 @@ type sendMsgRequestHandler struct {
 }
 
 func init() {
-	handler.RegisterImHandlerFactory(func(ctx *context.GlobalContext) handler.ImMsgHandler {
+	handler.RegisterLogicHandlerFactory(func(ctx *context.GlobalContext) handler.IMLogicHandler {
 		return &sendMsgRequestHandler{
 			globalContext: ctx,
 		}
 	})
 }
 
-func (h *sendMsgRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg, ctx util.ContextMap) (ok bool) {
+func (h *sendMsgRequestHandler) HandleMsg(c conn.Conn, msg *pkg.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	if _, ok = msg.GetContent().(*tursom_im_protobuf.ImMsg_SendMsgRequest); !ok {
+	if _, ok = msg.GetContent().(*pkg.ImMsg_SendMsgRequest); !ok {
 		return
 	}
 
-	response := &tursom_im_protobuf.SendMsgResponse{}
+	response := &pkg.SendMsgResponse{}
 	msgId := h.globalContext.MsgIdContext().NewMsgIdStr()
 	{
 		r := handler.ResponseCtxKey.Get(ctx)
-		r.Content, r.MsgId = &tursom_im_protobuf.ImMsg_SendMsgResponse{SendMsgResponse: response}, msgId
+		r.Content, r.MsgId = &pkg.ImMsg_SendMsgResponse{SendMsgResponse: response}, msgId
 	}
 
 	sendMsgRequest := msg.GetSendMsgRequest()
-	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
+	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(c).Get().AsString()
 	response.ReqId = sendMsgRequest.ReqId
 
 	receiver := sendMsgRequest.Receiver
@@ -49,21 +49,21 @@ func (h *sendMsgRequestHandler) HandleMsg(conn *im_conn.AttachmentConn, msg *tur
 	currentConn := h.globalContext.UserConnContext().GetUserConn(sender)
 	if receiverConn == nil || currentConn == nil {
 		response.FailMsg = "user \"" + receiver + "\" not login"
-		response.FailType = tursom_im_protobuf.FailType_TARGET_NOT_LOGIN
+		response.FailType = pkg.FailType_TARGET_NOT_LOGIN
 		return
 	}
 
 	response.Success = true
-	imMsg := &tursom_im_protobuf.ImMsg{
+	imMsg := &pkg.ImMsg{
 		MsgId: msgId,
-		Content: &tursom_im_protobuf.ImMsg_ChatMsg{ChatMsg: &tursom_im_protobuf.ChatMsg{
+		Content: &pkg.ImMsg_ChatMsg{ChatMsg: &pkg.ChatMsg{
 			Receiver: receiver,
 			Sender:   sender,
 			Content:  sendMsgRequest.Content,
 		}},
 	}
-	_ = currentConn.Aggregation(receiverConn).WriteChatMsg(imMsg, func(c *im_conn.AttachmentConn) bool {
-		return conn != c
+	currentConn.Aggregation(receiverConn).WriteChatMsg(imMsg, func(c conn.Conn) bool {
+		return c != c
 	})
 
 	return

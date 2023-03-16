@@ -1,4 +1,4 @@
-package handler
+package web
 
 import (
 	"fmt"
@@ -16,74 +16,43 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
-	"github.com/tursom/GoCollections/util"
 
+	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/exception"
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/handler"
+	"github.com/tursom-im/proto/pkg"
 	"github.com/tursom-im/utils"
 )
 
-var (
-	imHandlerFactories []func(ctx *context.GlobalContext) ImMsgHandler
-	imHandlerContext   = util.NewContext()
-	ResponseCtxKey     = util.AllocateContextKeyWithDefault[*tursom_im_protobuf.ImMsg](imHandlerContext, func() *tursom_im_protobuf.ImMsg {
-		return &tursom_im_protobuf.ImMsg{}
-	})
-	CloseConnectionCtxKey = util.AllocateContextKey[bool](imHandlerContext)
-)
-
 type (
-	// ImMsgHandler shows an object that can handle im msg
-	// default im handlers on package handler/msg, you need to run msg.Init() to initial imHandlerFactories
-	ImMsgHandler interface {
-		lang.Object
-		HandleMsg(
-			conn *im_conn.AttachmentConn,
-			msg *tursom_im_protobuf.ImMsg,
-			ctx util.ContextMap,
-		) (ok bool)
-	}
-
-	WebSocketHandler struct {
+	// Handler WebSocket handler
+	Handler struct {
 		lang.BaseObject
 		globalContext     *context.GlobalContext
-		writeChannelList  []chan *im_conn.ConnWriteMsg
+		writeChannelList  []chan *ConnWriteMsg
 		writeChannelIndex uint32
-		handlers          []ImMsgHandler
+		handlers          []handler.IMLogicHandler
 	}
 )
 
-func RegisterImHandlerFactory(handlerFactory func(ctx *context.GlobalContext) ImMsgHandler) {
-	imHandlerFactories = append(imHandlerFactories, handlerFactory)
-}
-
-func NewImMsgHandlers(ctx *context.GlobalContext) []ImMsgHandler {
-	handlers := make([]ImMsgHandler, len(imHandlerFactories))
-	for i, factory := range imHandlerFactories {
-		handlers[i] = factory(ctx)
-	}
-	return handlers
-}
-
-func NewWebSocketHandler(globalContext *context.GlobalContext) *WebSocketHandler {
-	return &WebSocketHandler{
+func NewWebSocketHandler(globalContext *context.GlobalContext) *Handler {
+	return &Handler{
 		globalContext:     globalContext,
 		writeChannelList:  nil,
 		writeChannelIndex: 0,
-		handlers:          NewImMsgHandlers(globalContext),
+		handlers:          handler.LogicHandlers(globalContext),
 	}
 }
 
-func (h *WebSocketHandler) InitWebHandler(router Router) {
+func (h *Handler) InitWebHandler(router Router) {
 	exceptions.CheckNil(h)
 
 	if h.writeChannelList == nil {
 		writeChannelCount := int(math.Max(16, float64(runtime.NumCPU()*2)))
 		for i := 0; i < writeChannelCount; i++ {
-			writeChannel := make(chan *im_conn.ConnWriteMsg, 128)
-			go im_conn.HandleWrite(writeChannel)
+			writeChannel := make(chan *ConnWriteMsg, 128)
+			go HandleWrite(writeChannel)
 			h.writeChannelList = append(h.writeChannelList, writeChannel)
 		}
 	}
@@ -91,22 +60,22 @@ func (h *WebSocketHandler) InitWebHandler(router Router) {
 	router.GET("/ws", h.clientUpgrade)
 }
 
-func (h *WebSocketHandler) clientUpgrade(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func (h *Handler) clientUpgrade(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	exceptions.CheckNil(h)
 
-	conn, _, _, err := ws.UpgradeHTTP(r, w)
+	c, _, _, err := ws.UpgradeHTTP(r, w)
 	if err != nil {
 		exceptions.Package(err).PrintStackTrace()
 		return
 	}
-	go h.Handle(conn)
+	go h.Handle(c)
 }
 
-func (h *WebSocketHandler) Handle(conn net.Conn) {
+func (h *Handler) Handle(conn net.Conn) {
 	exceptions.CheckNil(h)
 
 	writeChannelIndex := atomic.AddUint32(&h.writeChannelIndex, 1) % uint32(len(h.writeChannelList))
-	attachmentConn := im_conn.NewSimpleAttachmentConn(conn, h.writeChannelList[writeChannelIndex])
+	attachmentConn := NewSimpleAttachmentConn(conn, h.writeChannelList[writeChannelIndex])
 	//goland:noinspection GoUnhandledErrorResult
 	defer attachmentConn.Close()
 
@@ -134,7 +103,7 @@ func (h *WebSocketHandler) Handle(conn net.Conn) {
 
 			switch op {
 			case ws.OpBinary:
-				imMsg := &tursom_im_protobuf.ImMsg{}
+				imMsg := &pkg.ImMsg{}
 				err = proto.Unmarshal(msg, imMsg)
 				if err != nil {
 					return nil, exceptions.Package(err)
@@ -175,18 +144,20 @@ func (h *WebSocketHandler) Handle(conn net.Conn) {
 	}
 }
 
-func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request *tursom_im_protobuf.ImMsg) {
+func (h *Handler) handleBinaryMsg(conn *WebSocketConn, request *pkg.ImMsg) {
 	exceptions.CheckNil(h)
 
 	sender, login := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).TryGet()
 	if login {
+		// if already login
 		fmt.Println("request:", sender, ":", request)
 	} else {
 		fmt.Println("request:", request)
 	}
-	ctx := imHandlerContext.NewMap()
+
+	ctx := handler.NewImMsgContext()
 	defer func() {
-		if CloseConnectionCtxKey.Get(ctx) {
+		if handler.CloseConnectionCtxKey.Get(ctx) {
 			_ = conn.Close()
 		}
 	}()
@@ -196,13 +167,13 @@ func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 		return
 	}
 
-	for _, handler := range h.handlers {
-		if handler.HandleMsg(conn, request, ctx) {
+	for _, msgHandler := range h.handlers {
+		if msgHandler.HandleMsg(conn, request, ctx) {
 			break
 		}
 	}
 
-	response := ResponseCtxKey.Get(ctx)
+	response := handler.ResponseCtxKey.Get(ctx)
 	if login {
 		fmt.Println("response:", sender, ":", response)
 	} else {
@@ -216,12 +187,12 @@ func (h *WebSocketHandler) handleBinaryMsg(conn *im_conn.AttachmentConn, request
 	conn.WriteData(bytes)
 }
 
-func (h *WebSocketHandler) handleSelfMsg(conn *im_conn.AttachmentConn, msg *tursom_im_protobuf.ImMsg) {
+func (h *Handler) handleSelfMsg(c *WebSocketConn, msg *pkg.ImMsg) {
 	exceptions.CheckNil(h)
 
-	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).Get().AsString()
+	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(c).Get().AsString()
 	currentConn := h.globalContext.UserConnContext().GetUserConn(sender)
-	_ = currentConn.WriteChatMsg(msg, func(c *im_conn.AttachmentConn) bool {
-		return conn != c
+	currentConn.WriteChatMsg(msg, func(c conn.Conn) bool {
+		return c != c
 	})
 }

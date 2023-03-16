@@ -7,14 +7,14 @@ import (
 	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/im_conn"
+	"github.com/tursom-im/conn"
 )
 
 // ConnNodeContext
 // 负责节点注册的服务
 type ConnNodeContext struct {
 	lang.BaseObject
-	connMap     map[int32]*im_conn.AttachmentConn
+	connMap     map[int32]conn.Conn
 	mutex       concurrent.Lock
 	attrContext *AttrContext
 	nodeMax     int32
@@ -22,44 +22,44 @@ type ConnNodeContext struct {
 
 func NewConnNodeContext(nodeMax int32) *ConnNodeContext {
 	return &ConnNodeContext{
-		connMap:     make(map[int32]*im_conn.AttachmentConn),
+		connMap:     make(map[int32]conn.Conn),
 		mutex:       new(sync.Mutex),
 		attrContext: nil,
 		nodeMax:     nodeMax,
 	}
 }
 
-func (c *ConnNodeContext) Init(ctx *GlobalContext) {
-	c.attrContext = ctx.attrContext
+func (ctx *ConnNodeContext) Init(globalCtx *GlobalContext) {
+	ctx.attrContext = globalCtx.attrContext
 }
 
-func (c *ConnNodeContext) Allocate(conn *im_conn.AttachmentConn) int32 {
+func (ctx *ConnNodeContext) Allocate(conn conn.Conn) int32 {
 	if conn == nil {
 		return -1
 	}
 
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	ctx.mutex.Lock()
+	defer ctx.mutex.Unlock()
 
-	randNode := rand.Int31() % c.nodeMax
-	if c.check(randNode) {
-		c.register(randNode, conn)
+	randNode := rand.Int31() % ctx.nodeMax
+	if ctx.check(randNode) {
+		ctx.register(randNode, conn)
 		return randNode
 	}
 
 	node := randNode - 1
 	for node >= 0 {
-		if c.check(node) {
-			c.register(node, conn)
+		if ctx.check(node) {
+			ctx.register(node, conn)
 			return node
 		}
 		node--
 	}
 
 	node = randNode + 1
-	for node < c.nodeMax {
-		if c.check(node) {
-			c.register(node, conn)
+	for node < ctx.nodeMax {
+		if ctx.check(node) {
+			ctx.register(node, conn)
 			return node
 		}
 		node++
@@ -68,21 +68,21 @@ func (c *ConnNodeContext) Allocate(conn *im_conn.AttachmentConn) int32 {
 	return -1
 }
 
-func (c *ConnNodeContext) check(node int32) bool {
-	return c.connMap[node] == nil
+func (ctx *ConnNodeContext) check(node int32) bool {
+	return ctx.connMap[node] == nil
 }
 
-func (c *ConnNodeContext) register(node int32, conn *im_conn.AttachmentConn) {
-	c.connMap[node] = conn
-	conn.AddEventListener(func(event im_conn.ConnEvent) {
+func (ctx *ConnNodeContext) register(node int32, c conn.Conn) {
+	ctx.connMap[node] = c
+	c.AddEventListener(func(event conn.Event) {
 		if !event.EventId().IsConnClosed() {
 			return
 		}
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
+		ctx.mutex.Lock()
+		defer ctx.mutex.Unlock()
 
-		if c.connMap[node] == event.Conn() {
-			delete(c.connMap, node)
+		if ctx.connMap[node] == event.Conn() {
+			delete(ctx.connMap, node)
 		}
 	})
 }

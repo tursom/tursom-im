@@ -10,7 +10,7 @@ import (
 	"github.com/tursom/GoCollections/lang"
 
 	"github.com/tursom-im/exception"
-	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/proto/encode"
 )
 
 type TokenContext struct {
@@ -30,12 +30,12 @@ func (c *TokenContext) init(sqlContext SqlContext) {
 	c.sqlContext = sqlContext
 }
 
-func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, exceptions.Exception) {
+func (c *TokenContext) Parse(tokenStr string) (*encode.ImToken, exceptions.Exception) {
 	tokenBytes, err := b64.StdEncoding.DecodeString(tokenStr)
 	if err != nil {
 		return nil, exceptions.Package(err)
 	}
-	token := tursom_im_protobuf.ImToken{}
+	token := encode.ImToken{}
 	err = proto.Unmarshal(tokenBytes, &token)
 	if err != nil {
 		return nil, exceptions.Package(err)
@@ -63,7 +63,7 @@ func (c *TokenContext) Parse(tokenStr string) (*tursom_im_protobuf.ImToken, exce
 
 func (c *TokenContext) FlushToken(uid string) (string, exceptions.Exception) {
 	sig := rand.Uint64()
-	token := &tursom_im_protobuf.ImToken{
+	token := &encode.ImToken{
 		Uid: uid,
 		Sig: sig,
 	}

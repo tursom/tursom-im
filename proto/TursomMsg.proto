@@ -5,7 +5,7 @@ option optimize_for = SPEED;
 
 package cn.tursom.im.protobuf;
 option java_outer_classname = "TursomMsg";
-option go_package = "./tursom_im_protobuf";
+option go_package = "./pkg";
 
 message ImMsg {
   string msgId = 1;

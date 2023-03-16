@@ -14,17 +14,27 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/tursom-im/config"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	"github.com/tursom-im/handler/msg"
+	ctx "github.com/tursom-im/context"
+	_ "github.com/tursom-im/handler/handler"
+	"github.com/tursom-im/handler/transport/web"
 )
 
 func systemInit() *config.Config {
-	msg.Init()
 	rand.Seed(time.Now().UnixNano())
 
+	configPath := "config.yaml"
+
+	for i := 1; i < len(os.Args); i++ {
+		switch os.Args[i] {
+		case "--config":
+		case "-c":
+			i++
+			configPath = os.Args[i]
+		}
+	}
+
 	cfg := config.NewConfig()
-	configFile, err := os.ReadFile("config.yaml")
+	configFile, err := os.ReadFile(configPath)
 	if err != nil {
 		panic(exceptions.Package(err))
 	}
@@ -37,28 +47,16 @@ func systemInit() *config.Config {
 }
 
 func main() {
-	//node, err := libp2p.New(libp2p.ChainOptions())
-	//if err != nil {
-	//	panic(err)
-	//}
-	//// 打印节点的所有地址
-	//fmt.Println("Listen addresses:", node.Addrs())
-	//// 关闭节点，然后退出
-	//if err = node.Close(); err != nil {
-	//	panic(err)
-	//}
-	//return
-
 	cfg := systemInit()
 	fmt.Println(cfg)
 
-	globalContext := context.NewGlobalContext(cfg)
+	globalContext := ctx.NewGlobalContext(cfg)
 	if globalContext == nil {
 		panic(exceptions.NewRuntimeException("", nil))
 	}
 
-	webSocketHandler := handler.NewWebSocketHandler(globalContext)
-	tokenHandler := handler.NewTokenHandler(globalContext)
+	webSocketHandler := web.NewWebSocketHandler(globalContext)
+	tokenHandler := web.NewTokenHandler(globalContext)
 
 	router := httprouter.New()
 	tokenHandler.InitWebHandler(router)

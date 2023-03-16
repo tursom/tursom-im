@@ -2,7 +2,7 @@ syntax = "proto3";
 
 option optimize_for = SPEED;
 
-option go_package = "./tursom_im_protobuf";
+option go_package = "./encode";
 
 message ImToken {
   uint64 sig = 1;

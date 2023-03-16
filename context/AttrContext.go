@@ -3,29 +3,29 @@ package context
 import (
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/im_conn"
-	"github.com/tursom-im/tursom_im_protobuf"
+	"github.com/tursom-im/conn"
+	"github.com/tursom-im/proto/encode"
 )
 
 type AttrContext struct {
 	lang.BaseObject
-	userIdAttrKey    *im_conn.AttachmentKey[lang.String]
-	userTokenAttrKey *im_conn.AttachmentKey[*tursom_im_protobuf.ImToken]
+	userIdAttrKey    *conn.AttachmentKey[lang.String]
+	userTokenAttrKey *conn.AttachmentKey[*encode.ImToken]
 }
 
-func (a AttrContext) UserIdAttrKey() *im_conn.AttachmentKey[lang.String] {
+func (a AttrContext) UserIdAttrKey() *conn.AttachmentKey[lang.String] {
 	return a.userIdAttrKey
 }
 
-func (a AttrContext) UserTokenAttrKey() *im_conn.AttachmentKey[*tursom_im_protobuf.ImToken] {
+func (a AttrContext) UserTokenAttrKey() *conn.AttachmentKey[*encode.ImToken] {
 	return a.userTokenAttrKey
 }
 
 func NewAttrContext() *AttrContext {
-	userIdAttrKey := im_conn.NewAttachmentKey[lang.String]("userIdAttrKey")
-	userTokenAttrKey := im_conn.NewAttachmentKey[*tursom_im_protobuf.ImToken]("userTokenAttrKey")
+	userIdAttrKey := conn.NewAttachmentKey[lang.String]("userIdAttrKey")
+	userTokenAttrKey := conn.NewAttachmentKey[*encode.ImToken]("userTokenAttrKey")
 	return &AttrContext{
-		userIdAttrKey:    &userIdAttrKey,
-		userTokenAttrKey: &userTokenAttrKey,
+		userIdAttrKey:    userIdAttrKey,
+		userTokenAttrKey: userTokenAttrKey,
 	}
 }
