@@ -13,6 +13,8 @@ message SystemMsg {
   oneof content {
     JoinClusterRequest joinClusterRequest = 1;
     JoinClusterResponse joinClusterResponse = 2;
+    FindNodeRequest findNodeRequest = 3;
+    FindNodeResponse findNodeResponse = 4;
   }
 }
 
@@ -27,4 +29,28 @@ message JoinClusterResponse {
   bool success = 1;
   string nodeId = 2;
   string version = 3;
+}
+
+message FindNodeRequest {
+  string requestId = 1;
+  string source = 2;
+  string target = 3;
+  uint32 distance = 4;
+}
+
+message FindNodeResponse {
+  string requestId = 1;
+  uint32 distance = 2;
+}
+
+message MessageForwardRequest {
+  string requestId = 1;
+  string source = 2;
+  string target = 3;
+  bytes message = 4;
+}
+
+message MessageForwardResponse {
+  string requestId = 1;
+  bool success = 2;
 }

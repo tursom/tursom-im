@@ -551,7 +551,7 @@ func (*MsgContent_Ext) isMsgContent_Content() {}
 
 func (*MsgContent_Signed) isMsgContent_Content() {}
 
-//*
+// *
 // SignedMsg 签名过的消息
 // IM 服务端并不会校验签名的有效性，需要客户端自行校验
 type SignedMsg struct {
