@@ -15,6 +15,9 @@ message SystemMsg {
     JoinClusterResponse joinClusterResponse = 2;
     FindNodeRequest findNodeRequest = 3;
     FindNodeResponse findNodeResponse = 4;
+    MessageRequest messageRequest = 5;
+    MessageResponse messageResponse = 6;
+    bytes gzMsg = 7;
   }
 }
 
@@ -43,14 +46,14 @@ message FindNodeResponse {
   uint32 distance = 2;
 }
 
-message MessageForwardRequest {
+message MessageRequest {
   string requestId = 1;
   string source = 2;
   string target = 3;
   bytes message = 4;
 }
 
-message MessageForwardResponse {
+message MessageResponse {
   string requestId = 1;
   bool success = 2;
 }

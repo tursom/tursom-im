@@ -1,4 +1,4 @@
-package distributed
+package router
 
 import (
 	"context"
@@ -12,7 +12,7 @@ type (
 	testProcessor struct {
 		id         string
 		processors map[string]*testProcessor
-		cluster    *clusterImpl[any]
+		cluster    *routerImpl[any]
 	}
 
 	msgReq struct {
@@ -42,25 +42,25 @@ func Test_cluster_Send(t1 *testing.T) {
 		id:         "1",
 		processors: processors,
 	}
-	processors["1"].cluster = NewCluster[any](NewConfig[any](processors["1"])).(*clusterImpl[any])
-	processors["1"].cluster.AddNodes([]string{"1", "2", "3"})
-	processors["1"].cluster.SetConnected([]string{"2"})
+	processors["1"].cluster = NewRouter[any](DefaultConfig[any](processors["1"])).(*routerImpl[any])
+	processors["1"].cluster.AddHosts([]string{"1", "2", "3"})
+	processors["1"].cluster.SetDirectly([]string{"2"})
 
 	processors["2"] = &testProcessor{
 		id:         "2",
 		processors: processors,
 	}
-	processors["2"].cluster = NewCluster[any](NewConfig[any](processors["2"])).(*clusterImpl[any])
-	processors["2"].cluster.AddNodes([]string{"1", "2", "3"})
-	processors["2"].cluster.SetConnected([]string{"1", "3"})
+	processors["2"].cluster = NewRouter[any](DefaultConfig[any](processors["2"])).(*routerImpl[any])
+	processors["2"].cluster.AddHosts([]string{"1", "2", "3"})
+	processors["2"].cluster.SetDirectly([]string{"1", "3"})
 
 	processors["3"] = &testProcessor{
 		id:         "3",
 		processors: processors,
 	}
-	processors["3"].cluster = NewCluster[any](NewConfig[any](processors["3"])).(*clusterImpl[any])
-	processors["3"].cluster.AddNodes([]string{"1", "2", "3"})
-	processors["3"].cluster.SetConnected([]string{"2"})
+	processors["3"].cluster = NewRouter[any](DefaultConfig[any](processors["3"])).(*routerImpl[any])
+	processors["3"].cluster.AddHosts([]string{"1", "2", "3"})
+	processors["3"].cluster.SetDirectly([]string{"2"})
 
 	send, e := processors["1"].cluster.Send(context.Background(), "3", "hello", 0)
 	fmt.Println(send, e)
@@ -108,7 +108,7 @@ func (p *testProcessor) LocalId() string {
 }
 
 func (p *testProcessor) Send(ctx context.Context, nextJmp string, target string, msg any, jmp uint32) (bool, exceptions.Exception) {
-	fmt.Printf("%s send(nextJmp: %s, terget: %s)\n", p.id, nextJmp, target)
+	fmt.Printf("%s send0(nextJmp: %s, terget: %s)\n", p.id, nextJmp, target)
 	if target == p.id {
 		fmt.Printf("%s received msg: %v\n", p.id, msg)
 		return true, nil
@@ -121,7 +121,7 @@ func (p *testProcessor) Send(ctx context.Context, nextJmp string, target string,
 		jmp:    jmp,
 	})
 
-	fmt.Printf("%s send(nextJmp: %s, terget: %s) success %v\n", p.id, nextJmp, target, send.(*msgResp).success)
+	fmt.Printf("%s send0(nextJmp: %s, terget: %s) success %v\n", p.id, nextJmp, target, send.(*msgResp).success)
 	return send.(*msgResp).success, e
 }
 
