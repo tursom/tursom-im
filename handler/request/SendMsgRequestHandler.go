@@ -1,4 +1,4 @@
-package handler
+package request
 
 import (
 	"github.com/tursom/GoCollections/exceptions"
@@ -8,7 +8,7 @@ import (
 	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 )
 
 type sendMsgRequestHandler struct {
@@ -17,46 +17,46 @@ type sendMsgRequestHandler struct {
 }
 
 func init() {
-	handler.RegisterLogicHandlerFactory(func(ctx *context.GlobalContext) handler.IMLogicHandler {
+	handler.RegisterMsgHandlerFactory(func(ctx *context.GlobalContext) handler.IMMsgHandler {
 		return &sendMsgRequestHandler{
 			globalContext: ctx,
 		}
 	})
 }
 
-func (h *sendMsgRequestHandler) HandleMsg(c conn.Conn, msg *pkg.ImMsg, ctx util.ContextMap) (ok bool) {
+func (h *sendMsgRequestHandler) HandleMsg(c conn.Conn, msg *m.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
 
-	if _, ok = msg.GetContent().(*pkg.ImMsg_SendMsgRequest); !ok {
+	if _, ok = msg.GetContent().(*m.ImMsg_SendMsgRequest); !ok {
 		return
 	}
 
-	response := &pkg.SendMsgResponse{}
-	msgId := h.globalContext.MsgIdContext().NewMsgIdStr()
+	response := &m.SendMsgResponse{}
+	msgId := h.globalContext.MsgId().NewMsgIdStr()
 	{
 		r := handler.ResponseCtxKey.Get(ctx)
-		r.Content, r.MsgId = &pkg.ImMsg_SendMsgResponse{SendMsgResponse: response}, msgId
+		r.Content, r.MsgId = &m.ImMsg_SendMsgResponse{SendMsgResponse: response}, msgId
 	}
 
 	sendMsgRequest := msg.GetSendMsgRequest()
-	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(c).Get().AsString()
+	sender := h.globalContext.Attr().UserId(c).Get().AsString()
 	response.ReqId = sendMsgRequest.ReqId
 
 	receiver := sendMsgRequest.Receiver
-	receiverConn := h.globalContext.UserConnContext().GetUserConn(receiver)
-	currentConn := h.globalContext.UserConnContext().GetUserConn(sender)
+	receiverConn := h.globalContext.UserConn().GetUserConn(receiver)
+	currentConn := h.globalContext.UserConn().GetUserConn(sender)
 	if receiverConn == nil || currentConn == nil {
 		response.FailMsg = "user \"" + receiver + "\" not login"
-		response.FailType = pkg.FailType_TARGET_NOT_LOGIN
+		response.FailType = m.FailType_TARGET_NOT_LOGIN
 		return
 	}
 
 	response.Success = true
-	imMsg := &pkg.ImMsg{
+	imMsg := &m.ImMsg{
 		MsgId: msgId,
-		Content: &pkg.ImMsg_ChatMsg{ChatMsg: &pkg.ChatMsg{
+		Content: &m.ImMsg_ChatMsg{ChatMsg: &m.ChatMsg{
 			Receiver: receiver,
 			Sender:   sender,
 			Content:  sendMsgRequest.Content,

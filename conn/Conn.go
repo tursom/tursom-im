@@ -1,7 +1,6 @@
 package conn
 
 import (
-	"io"
 	"unsafe"
 
 	"github.com/tursom/GoCollections/exceptions"
@@ -9,7 +8,7 @@ import (
 	"github.com/tursom/GoCollections/lang/atomic"
 	unsafe2 "github.com/tursom/GoCollections/unsafe"
 
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 )
 
 var attachmentKeyId = atomic.Int32(0)
@@ -17,8 +16,7 @@ var attachmentKeyId = atomic.Int32(0)
 type (
 	Conn interface {
 		lang.Object
-		io.Writer
-		SendMsg(msg *pkg.ImMsg)
+		SendMsg(msg *m.ImMsg)
 		WriteData(data []byte)
 		Attr(*AttachmentKey[any]) Attachment[any]
 		AddEventListener(func(event Event)) EventListener

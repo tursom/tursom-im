@@ -1,22 +1,26 @@
 package handler
 
 import (
+	"sync"
+
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
 	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
+	"github.com/tursom-im/proto/msys"
 )
 
 var (
-	logicHandlerFactories []func(ctx *context.GlobalContext) IMLogicHandler
-	imMsgContext          = util.NewContext()
+	factoriesLock       sync.Mutex
+	msgHandlerFactories []func(ctx *context.GlobalContext) IMMsgHandler
+	imMsgContext        = util.NewContext()
 	// ResponseCtxKey if HandleMsg returns true, then this value must not be nil
-	ResponseCtxKey = util.AllocateContextKeyWithDefault[*pkg.ImMsg](
+	ResponseCtxKey = util.AllocateContextKeyWithDefault(
 		imMsgContext,
-		func() *pkg.ImMsg {
-			return &pkg.ImMsg{}
+		func() *m.ImMsg {
+			return &m.ImMsg{}
 		},
 	)
 	// CloseConnectionCtxKey if this value on ctx is true, then close this connection
@@ -24,27 +28,41 @@ var (
 )
 
 type (
-	// IMLogicHandler shows an object that can handle im msg
-	// default im handlers on package handler/msg, you need to run msg.Init() to initial logicHandlerFactories
-	IMLogicHandler interface {
+	// IMMsgHandler shows an object that can handle im msg
+	// default im handlers on package handler/msg, you need to run msg.Init() to initial msgHandlerFactories
+	IMMsgHandler interface {
 		lang.Object
 		// HandleMsg
 		// ***WARN***: if returns true, value of ResponseCtxKey on ctx must be set and not be nil
 		HandleMsg(
 			c conn.Conn,
-			msg *pkg.ImMsg,
+			msg *m.ImMsg,
+			ctx util.ContextMap,
+		) (ok bool)
+	}
+
+	SystemMsgHandler interface {
+		lang.Object
+		HandleSystemMsg(
+			msg msys.SystemMsg,
 			ctx util.ContextMap,
 		) (ok bool)
 	}
 )
 
-func RegisterLogicHandlerFactory(handlerFactory func(ctx *context.GlobalContext) IMLogicHandler) {
-	logicHandlerFactories = append(logicHandlerFactories, handlerFactory)
+func RegisterMsgHandlerFactory(handlerFactory func(ctx *context.GlobalContext) IMMsgHandler) {
+	factoriesLock.Lock()
+	defer factoriesLock.Unlock()
+
+	msgHandlerFactories = append(msgHandlerFactories, handlerFactory)
 }
 
-func LogicHandlers(ctx *context.GlobalContext) []IMLogicHandler {
-	handlers := make([]IMLogicHandler, len(logicHandlerFactories))
-	for i, factory := range logicHandlerFactories {
+func MsgHandlers(ctx *context.GlobalContext) []IMMsgHandler {
+	factoriesLock.Lock()
+	defer factoriesLock.Unlock()
+
+	handlers := make([]IMMsgHandler, len(msgHandlerFactories))
+	for i, factory := range msgHandlerFactories {
 		handlers[i] = factory(ctx)
 	}
 	return handlers

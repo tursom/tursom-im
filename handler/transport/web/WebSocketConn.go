@@ -14,9 +14,11 @@ import (
 	cc "github.com/tursom/GoCollections/concurrent/collections"
 
 	"github.com/tursom-im/conn"
-	"github.com/tursom-im/proto/pkg"
+	"github.com/tursom-im/exception"
+	m "github.com/tursom-im/proto/msg"
 )
 
+//goland:noinspection GoNameStartsWithPackageName
 type (
 	EventListener struct {
 		lang.BaseObject
@@ -46,7 +48,7 @@ type (
 	}
 )
 
-func (c *WebSocketConn) SendMsg(msg *pkg.ImMsg) {
+func (c *WebSocketConn) SendMsg(msg *m.ImMsg) {
 	bytes, err := proto.Marshal(msg)
 	if err != nil {
 		panic(exceptions.Package(err))
@@ -64,21 +66,20 @@ func (c *WebSocketConn) Attr(a *conn.AttachmentKey[any]) conn.Attachment[any] {
 
 func HandleWrite(writeChannel <-chan *ConnWriteMsg) {
 	for writeMsg := range writeChannel {
-		_, err := exceptions.Try[any](func() (any, exceptions.Exception) {
+		if _, err := exceptions.Try[any](func() (any, exceptions.Exception) {
 			if writeErr := wsutil.WriteServerBinary(writeMsg.Conn, writeMsg.Data); writeErr != nil {
 				err := exceptions.Package(writeErr)
 				if writeMsg.ErrHandler != nil {
 					writeMsg.ErrHandler(err)
 				} else {
-					err.PrintStackTrace()
+					exception.Log("failed to write msg", err)
 				}
 			}
 			return nil, nil
 		}, func(panic any) (ret any, err exceptions.Exception) {
 			return nil, exceptions.PackageAny(panic)
-		})
-		if err != nil {
-			err.PrintStackTrace()
+		}); err != nil {
+			exception.Log("failed to write msg", err)
 		}
 	}
 }

@@ -43,7 +43,7 @@ func (h *TokenHandler) FlushToken(w http.ResponseWriter, r *http.Request, _ http
 		w.WriteHeader(400)
 		return
 	}
-	token, err := h.globalContext.TokenContext().FlushToken(uid[0])
+	token, err := h.globalContext.Token().FlushToken(uid[0])
 	if err != nil {
 		err = exceptions.Package(err)
 		exceptions.Print(err)
@@ -73,7 +73,7 @@ func (h *TokenHandler) NewUser(w http.ResponseWriter, r *http.Request, _ httprou
 		return
 	}
 
-	user, err := h.globalContext.SqlContext().GetUserTableContext().CreateUser()
+	user, err := h.globalContext.Sql().GetUserTableContext().CreateUser()
 	if err != nil {
 		err = exceptions.Package(err)
 		exceptions.Print(err)

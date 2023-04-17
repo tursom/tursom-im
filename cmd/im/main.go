@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 	"net/http"
 	"os"
@@ -10,16 +9,18 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	_ "github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 	"github.com/tursom/GoCollections/exceptions"
 	"gopkg.in/yaml.v2"
 
 	"github.com/tursom-im/config"
 	ctx "github.com/tursom-im/context"
-	_ "github.com/tursom-im/handler/handler"
+	"github.com/tursom-im/exception"
+	_ "github.com/tursom-im/handler/request"
 	"github.com/tursom-im/handler/transport/web"
 )
 
-func systemInit() *config.Config {
+func getConfig() *config.Config {
 	rand.Seed(time.Now().UnixNano())
 
 	configPath := "config.yaml"
@@ -47,8 +48,8 @@ func systemInit() *config.Config {
 }
 
 func main() {
-	cfg := systemInit()
-	fmt.Println(cfg)
+	cfg := getConfig()
+	log.Info(cfg)
 
 	globalContext := ctx.NewGlobalContext(cfg)
 	if globalContext == nil {
@@ -61,8 +62,9 @@ func main() {
 	router := httprouter.New()
 	tokenHandler.InitWebHandler(router)
 	webSocketHandler.InitWebHandler(router)
+	router.GET("/ip", web.ReportIp)
 
-	fmt.Println("server will start on port " + strconv.Itoa(cfg.Server.Port))
+	log.Infof("server will start on port %d", cfg.Server.Port)
 	runServer(cfg, router)
 }
 
@@ -74,7 +76,7 @@ func runServer(cfg *config.Config, router *httprouter.Router) {
 		err = http.ListenAndServe(":"+strconv.Itoa(cfg.Server.Port), router)
 	}
 	if err != nil {
-		exceptions.Print(err)
+		exception.Log("cmd/im/main.go: an exception caused on run server", err)
 		return
 	}
 }

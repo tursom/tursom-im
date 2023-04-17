@@ -10,7 +10,7 @@ import (
 	"github.com/tursom/GoCollections/lang"
 
 	"github.com/tursom-im/exception"
-	"github.com/tursom-im/proto/encode"
+	"github.com/tursom-im/proto/msys"
 )
 
 type TokenContext struct {
@@ -30,13 +30,13 @@ func (c *TokenContext) init(sqlContext SqlContext) {
 	c.sqlContext = sqlContext
 }
 
-func (c *TokenContext) Parse(tokenStr string) (*encode.ImToken, exceptions.Exception) {
+func (c *TokenContext) Parse(tokenStr string) (*msys.ImToken, exceptions.Exception) {
 	tokenBytes, err := b64.StdEncoding.DecodeString(tokenStr)
 	if err != nil {
 		return nil, exceptions.Package(err)
 	}
-	token := encode.ImToken{}
-	err = proto.Unmarshal(tokenBytes, &token)
+	token := &msys.ImToken{}
+	err = proto.Unmarshal(tokenBytes, token)
 	if err != nil {
 		return nil, exceptions.Package(err)
 	}
@@ -51,7 +51,7 @@ func (c *TokenContext) Parse(tokenStr string) (*encode.ImToken, exceptions.Excep
 
 	for i := range user.Token() {
 		if user.Token()[i] == tokenStr {
-			return &token, nil
+			return token, nil
 		}
 	}
 	return nil, exception.NewTokenSigException(fmt.Sprintf(
@@ -63,7 +63,7 @@ func (c *TokenContext) Parse(tokenStr string) (*encode.ImToken, exceptions.Excep
 
 func (c *TokenContext) FlushToken(uid string) (string, exceptions.Exception) {
 	sig := rand.Uint64()
-	token := &encode.ImToken{
+	token := &msys.ImToken{
 		Uid: uid,
 		Sig: sig,
 	}

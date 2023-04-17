@@ -29,12 +29,16 @@ func init() {
 
 func watchDogLooper() {
 	log.Info("utils/WatchDog.go: init watch dog looper")
+
+	tick := time.Tick(time.Second)
+
 	for {
+		<-tick
+
 		dead := 0
-		start := time.Now().UnixNano()
 
 		// call collections.LoopMutable to loop watchDogList
-		err := collections.LoopMutable[*WatchDog](&watchDogList, func(watchDog *WatchDog, iterator collections.MutableIterator[*WatchDog]) (err exceptions.Exception) {
+		if err := collections.LoopMutable[*WatchDog](&watchDogList, func(watchDog *WatchDog, iterator collections.MutableIterator[*WatchDog]) (err exceptions.Exception) {
 			watchDog.feeding--
 
 			if watchDog.feeding <= 0 {
@@ -53,8 +57,7 @@ func watchDogLooper() {
 				})
 			}
 			return
-		})
-		if err != nil {
+		}); err != nil {
 			log.WithFields(log.Fields{
 				"err":        err,
 				"stackTrace": exceptions.GetStackTraceString(err),
@@ -65,12 +68,6 @@ func watchDogLooper() {
 			"dead": dead,
 			"live": watchDogList.Size(),
 		}).Info("utils/WatchDog.go: loop finished")
-
-		end := time.Now().UnixNano()
-		delay := time.Second - time.Nanosecond*time.Duration(end-start)
-		if delay > 0 {
-			time.Sleep(delay)
-		}
 	}
 }
 

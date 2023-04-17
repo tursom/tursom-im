@@ -1,4 +1,4 @@
-package handler
+package request
 
 import (
 	"github.com/tursom/GoCollections/exceptions"
@@ -8,7 +8,7 @@ import (
 	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 )
 
 type listenBroadcastRequestHandler struct {
@@ -17,34 +17,34 @@ type listenBroadcastRequestHandler struct {
 }
 
 func init() {
-	handler.RegisterLogicHandlerFactory(func(ctx *context.GlobalContext) handler.IMLogicHandler {
+	handler.RegisterMsgHandlerFactory(func(ctx *context.GlobalContext) handler.IMMsgHandler {
 		return &listenBroadcastRequestHandler{
 			globalContext: ctx,
 		}
 	})
 }
 
-func (h *listenBroadcastRequestHandler) HandleMsg(conn conn.Conn, msg *pkg.ImMsg, ctx util.ContextMap) (ok bool) {
+func (h *listenBroadcastRequestHandler) HandleMsg(conn conn.Conn, msg *m.ImMsg, ctx util.ContextMap) (ok bool) {
 	if h == nil {
 		panic(exceptions.NewNPE("WebSocketHandler is null", nil))
 	}
-	if _, ok = msg.GetContent().(*pkg.ImMsg_ListenBroadcastRequest); !ok {
+	if _, ok = msg.GetContent().(*m.ImMsg_ListenBroadcastRequest); !ok {
 		return
 	}
 
 	listenBroadcastRequest := msg.GetListenBroadcastRequest()
-	response := &pkg.ListenBroadcastResponse{
+	response := &m.ListenBroadcastResponse{
 		ReqId: listenBroadcastRequest.ReqId,
 	}
-	handler.ResponseCtxKey.Get(ctx).Content = &pkg.ImMsg_ListenBroadcastResponse{
+	handler.ResponseCtxKey.Get(ctx).Content = &m.ImMsg_ListenBroadcastResponse{
 		ListenBroadcastResponse: response,
 	}
 
 	var err exceptions.Exception = nil
 	if listenBroadcastRequest.CancelListen {
-		err = h.globalContext.BroadcastContext().CancelListen(listenBroadcastRequest.Channel, conn)
+		err = h.globalContext.Broadcast().CancelListen(listenBroadcastRequest.Channel, conn)
 	} else {
-		err = h.globalContext.BroadcastContext().Listen(listenBroadcastRequest.Channel, conn)
+		err = h.globalContext.Broadcast().Listen(listenBroadcastRequest.Channel, conn)
 	}
 	if err != nil {
 		err.PrintStackTrace()

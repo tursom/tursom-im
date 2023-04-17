@@ -16,7 +16,7 @@ type GlobalContext struct {
 	msgIdContext     *MsgIdContext
 	sqlContext       SqlContext
 	connNodeContext  *ConnNodeContext
-	broadcastContext *BroadcastContext
+	broadcastContext BroadcastContext
 }
 
 func NewGlobalContext(config *config.Config) *GlobalContext {
@@ -72,9 +72,17 @@ func NewGlobalContext(config *config.Config) *GlobalContext {
 	return g
 }
 
+func (g *GlobalContext) Cfg() *config.Config {
+	return g.Config()
+}
+
 func (g *GlobalContext) Config() *config.Config {
 	exceptions.CheckNil(g)
 	return g.cfg
+}
+
+func (g *GlobalContext) Attr() *AttrContext {
+	return g.AttrContext()
 }
 
 func (g *GlobalContext) AttrContext() *AttrContext {
@@ -82,9 +90,17 @@ func (g *GlobalContext) AttrContext() *AttrContext {
 	return g.attrContext
 }
 
+func (g *GlobalContext) Token() *TokenContext {
+	return g.TokenContext()
+}
+
 func (g *GlobalContext) TokenContext() *TokenContext {
 	exceptions.CheckNil(g)
 	return g.tokenContext
+}
+
+func (g *GlobalContext) UserConn() *UserConnContext {
+	return g.UserConnContext()
 }
 
 func (g *GlobalContext) UserConnContext() *UserConnContext {
@@ -92,14 +108,17 @@ func (g *GlobalContext) UserConnContext() *UserConnContext {
 	return g.userConnContext
 }
 
+func (g *GlobalContext) MsgId() *MsgIdContext {
+	return g.MsgIdContext()
+}
+
 func (g *GlobalContext) MsgIdContext() *MsgIdContext {
 	exceptions.CheckNil(g)
 	return g.msgIdContext
 }
 
-func (g *GlobalContext) Cfg() *config.Config {
-	exceptions.CheckNil(g)
-	return g.cfg
+func (g *GlobalContext) Sql() SqlContext {
+	return g.SqlContext()
 }
 
 func (g *GlobalContext) SqlContext() SqlContext {
@@ -107,12 +126,20 @@ func (g *GlobalContext) SqlContext() SqlContext {
 	return g.sqlContext
 }
 
+func (g *GlobalContext) ConnNode() *ConnNodeContext {
+	return g.ConnNodeContext()
+}
+
 func (g *GlobalContext) ConnNodeContext() *ConnNodeContext {
 	exceptions.CheckNil(g)
 	return g.connNodeContext
 }
 
-func (g *GlobalContext) BroadcastContext() *BroadcastContext {
+func (g *GlobalContext) Broadcast() BroadcastContext {
+	return g.BroadcastContext()
+}
+
+func (g *GlobalContext) BroadcastContext() BroadcastContext {
 	exceptions.CheckNil(g)
 	return g.broadcastContext
 }

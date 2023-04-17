@@ -5,7 +5,7 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 )
 
 type ConnGroup struct {
@@ -73,7 +73,7 @@ func (g *ConnGroup) Remove(conn Conn) {
 	delete(g.connMap, conn)
 }
 
-func (g *ConnGroup) WriteChatMsg(msg *pkg.ImMsg, filter func(Conn) bool) int {
+func (g *ConnGroup) WriteChatMsg(msg *m.ImMsg, filter func(Conn) bool) int {
 	if g == nil {
 		panic(exceptions.NewNPE("ConnGroup is null", nil))
 	}
@@ -82,7 +82,9 @@ func (g *ConnGroup) WriteChatMsg(msg *pkg.ImMsg, filter func(Conn) bool) int {
 	g.Loop(func(conn Conn) {
 		if filter == nil || filter(conn) {
 			defer func() {
-				exceptions.Print(exceptions.PackageAny(recover()))
+				if exception := exceptions.PackageAny(recover()); exception != nil {
+
+				}
 			}()
 			conn.SendMsg(msg)
 			sent++

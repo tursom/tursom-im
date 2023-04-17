@@ -8,25 +8,36 @@ import (
 	"github.com/tursom/GoCollections/lang"
 
 	"github.com/tursom-im/conn"
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 )
 
-// BroadcastContext
-// 负责实现广播的服务
-type BroadcastContext struct {
-	lang.BaseObject
-	channelGroupMap map[int32]*conn.ConnGroup
-	mutex           concurrent.RWLock
-}
+type (
+	// BroadcastContext
+	// 负责实现广播的服务
+	BroadcastContext interface {
+		lang.Object
+		Listen(channel int32, c conn.Conn) exceptions.Exception
+		CancelListen(channel int32, conn conn.Conn) exceptions.Exception
+		Send(channel int32, msg *m.ImMsg, filter func(conn.Conn) bool) int
+	}
 
-func NewBroadcastContext() *BroadcastContext {
-	return &BroadcastContext{
+	// localBroadcastContext
+	// 纯本地广播实现
+	localBroadcastContext struct {
+		lang.BaseObject
+		channelGroupMap map[int32]*conn.ConnGroup
+		mutex           concurrent.RWLock
+	}
+)
+
+func NewBroadcastContext() BroadcastContext {
+	return &localBroadcastContext{
 		channelGroupMap: make(map[int32]*conn.ConnGroup),
 		mutex:           new(sync.RWMutex),
 	}
 }
 
-func (b *BroadcastContext) Listen(channel int32, c conn.Conn) exceptions.Exception {
+func (b *localBroadcastContext) Listen(channel int32, c conn.Conn) exceptions.Exception {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -50,7 +61,7 @@ func (b *BroadcastContext) Listen(channel int32, c conn.Conn) exceptions.Excepti
 	return nil
 }
 
-func (b *BroadcastContext) CancelListen(channel int32, conn conn.Conn) exceptions.Exception {
+func (b *localBroadcastContext) CancelListen(channel int32, conn conn.Conn) exceptions.Exception {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -63,7 +74,7 @@ func (b *BroadcastContext) CancelListen(channel int32, conn conn.Conn) exception
 	return nil
 }
 
-func (b *BroadcastContext) Send(channel int32, msg *pkg.ImMsg, filter func(conn.Conn) bool) int {
+func (b *localBroadcastContext) Send(channel int32, msg *m.ImMsg, filter func(conn.Conn) bool) int {
 	b.mutex.RLock()
 	defer b.mutex.RUnlock()
 

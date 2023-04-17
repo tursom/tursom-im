@@ -14,6 +14,7 @@ import (
 	"github.com/gobwas/ws/wsutil"
 	"github.com/golang/protobuf/proto"
 	"github.com/julienschmidt/httprouter"
+	log "github.com/sirupsen/logrus"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
@@ -21,7 +22,7 @@ import (
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/exception"
 	"github.com/tursom-im/handler"
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 	"github.com/tursom-im/utils"
 )
 
@@ -32,7 +33,7 @@ type (
 		globalContext     *context.GlobalContext
 		writeChannelList  []chan *ConnWriteMsg
 		writeChannelIndex uint32
-		handlers          []handler.IMLogicHandler
+		handlers          []handler.IMMsgHandler
 	}
 )
 
@@ -41,7 +42,7 @@ func NewWebSocketHandler(globalContext *context.GlobalContext) *Handler {
 		globalContext:     globalContext,
 		writeChannelList:  nil,
 		writeChannelIndex: 0,
-		handlers:          handler.LogicHandlers(globalContext),
+		handlers:          handler.MsgHandlers(globalContext),
 	}
 }
 
@@ -89,7 +90,7 @@ func (h *Handler) Handle(conn net.Conn) {
 	defer watchDog.Kill()
 
 	for {
-		_, err := exceptions.Try(func() (any, exceptions.Exception) {
+		if _, err := exceptions.Try(func() (any, exceptions.Exception) {
 			msg, op, err := wsutil.ReadClientData(conn)
 			if err != nil {
 				return nil, exceptions.Package(err)
@@ -103,19 +104,17 @@ func (h *Handler) Handle(conn net.Conn) {
 
 			switch op {
 			case ws.OpBinary:
-				imMsg := &pkg.ImMsg{}
-				err = proto.Unmarshal(msg, imMsg)
-				if err != nil {
+				imMsg := &m.ImMsg{}
+				if err = proto.Unmarshal(msg, imMsg); err != nil {
 					return nil, exceptions.Package(err)
 				}
 				go func() {
-					_, err := exceptions.Try(func() (any, exceptions.Exception) {
+					if _, err := exceptions.Try(func() (any, exceptions.Exception) {
 						h.handleBinaryMsg(attachmentConn, imMsg)
 						return nil, nil
 					}, func(panic any) (any, exceptions.Exception) {
 						return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
-					})
-					if err != nil {
+					}); err != nil {
 						exceptions.Print(err)
 						if !utils.IsClosedError(err) {
 							exceptions.Print(conn.Close())
@@ -130,30 +129,24 @@ func (h *Handler) Handle(conn net.Conn) {
 			return nil, nil
 		}, func(panic any) (any, exceptions.Exception) {
 			return nil, exceptions.PackagePanic(panic, "an panic caused on handle WebSocket message:")
-		})
-		if err != nil {
+		}); err != nil {
 			exceptions.Print(err)
-			if utils.IsClosedError(err) {
-				unpack := exceptions.UnpackException(err)
-				if unpack == nil {
-					_, _ = fmt.Fprintln(os.Stderr, "error type:", reflect.TypeOf(unpack))
-				}
+			if !utils.IsClosedError(err) {
+				return
 			}
-			return
+
+			if unpack := exceptions.UnpackException(err); unpack == nil {
+				_, _ = fmt.Fprintln(os.Stderr, "error type:", reflect.TypeOf(unpack))
+			}
 		}
 	}
 }
 
-func (h *Handler) handleBinaryMsg(conn *WebSocketConn, request *pkg.ImMsg) {
+func (h *Handler) handleBinaryMsg(conn *WebSocketConn, request *m.ImMsg) {
 	exceptions.CheckNil(h)
 
-	sender, login := h.globalContext.AttrContext().UserIdAttrKey().Get(conn).TryGet()
-	if login {
-		// if already login
-		fmt.Println("request:", sender, ":", request)
-	} else {
-		fmt.Println("request:", request)
-	}
+	sender, login := h.globalContext.Attr().UserId(conn).TryGet()
+	logRequest(request, sender, login)
 
 	ctx := handler.NewImMsgContext()
 	defer func() {
@@ -174,24 +167,44 @@ func (h *Handler) handleBinaryMsg(conn *WebSocketConn, request *pkg.ImMsg) {
 	}
 
 	response := handler.ResponseCtxKey.Get(ctx)
-	if login {
-		fmt.Println("response:", sender, ":", response)
-	} else {
-		fmt.Println("response:", response)
-	}
+	logResponse(login, sender, response)
+
 	bytes, err := proto.Marshal(response)
 	if err != nil {
-		exceptions.Print(err)
+		exception.Log("marshal response failed", err)
 		return
 	}
 	conn.WriteData(bytes)
 }
 
-func (h *Handler) handleSelfMsg(c *WebSocketConn, msg *pkg.ImMsg) {
+func logRequest(request *m.ImMsg, sender lang.String, login bool) {
+	if login {
+		// if already login
+		log.WithField("request", request).
+			WithField("sender", sender).
+			Info("request")
+	} else {
+		log.WithField("request", request).
+			Info("request")
+	}
+}
+
+func logResponse(login bool, sender lang.String, response *m.ImMsg) {
+	if login {
+		log.WithField("response", response).
+			WithField("sender", sender).
+			Info("response")
+	} else {
+		log.WithField("response", response).
+			Info("response")
+	}
+}
+
+func (h *Handler) handleSelfMsg(c *WebSocketConn, msg *m.ImMsg) {
 	exceptions.CheckNil(h)
 
-	sender := h.globalContext.AttrContext().UserIdAttrKey().Get(c).Get().AsString()
-	currentConn := h.globalContext.UserConnContext().GetUserConn(sender)
+	sender := h.globalContext.Attr().UserId(c).Get().String()
+	currentConn := h.globalContext.UserConn().GetUserConn(sender)
 	currentConn.WriteChatMsg(msg, func(c conn.Conn) bool {
 		return c != c
 	})

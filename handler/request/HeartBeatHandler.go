@@ -1,4 +1,4 @@
-package handler
+package request
 
 import (
 	"github.com/tursom/GoCollections/lang"
@@ -7,7 +7,7 @@ import (
 	"github.com/tursom-im/conn"
 	"github.com/tursom-im/context"
 	"github.com/tursom-im/handler"
-	"github.com/tursom-im/proto/pkg"
+	m "github.com/tursom-im/proto/msg"
 )
 
 type heartBeatHandler struct {
@@ -15,13 +15,13 @@ type heartBeatHandler struct {
 }
 
 func init() {
-	handler.RegisterLogicHandlerFactory(func(_ *context.GlobalContext) handler.IMLogicHandler {
+	handler.RegisterMsgHandlerFactory(func(_ *context.GlobalContext) handler.IMMsgHandler {
 		return &heartBeatHandler{}
 	})
 }
 
-func (h *heartBeatHandler) HandleMsg(_ conn.Conn, msg *pkg.ImMsg, ctx util.ContextMap) (ok bool) {
-	if _, ok = msg.GetContent().(*pkg.ImMsg_HeartBeat); !ok {
+func (h *heartBeatHandler) HandleMsg(_ conn.Conn, msg *m.ImMsg, ctx util.ContextMap) (ok bool) {
+	if _, ok = msg.GetContent().(*m.ImMsg_HeartBeat); !ok {
 		return
 	}
 	handler.ResponseCtxKey.Get(ctx).Content = msg.Content
