@@ -13,9 +13,9 @@ import (
 
 	cc "github.com/tursom/GoCollections/concurrent/collections"
 
-	"github.com/tursom-im/conn"
-	"github.com/tursom-im/exception"
-	m "github.com/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/conn"
+	"github.com/tursom/tursom-im/exception"
+	m "github.com/tursom/tursom-im/proto/msg"
 )
 
 //goland:noinspection GoNameStartsWithPackageName

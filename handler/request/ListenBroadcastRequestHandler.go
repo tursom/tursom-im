@@ -5,10 +5,11 @@ import (
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
-	"github.com/tursom-im/conn"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	m "github.com/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/conn"
+	"github.com/tursom/tursom-im/context"
+	"github.com/tursom/tursom-im/handler"
+	m "github.com/tursom/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/proto/msys"
 )
 
 type listenBroadcastRequestHandler struct {
@@ -42,9 +43,9 @@ func (h *listenBroadcastRequestHandler) HandleMsg(conn conn.Conn, msg *m.ImMsg, 
 
 	var err exceptions.Exception = nil
 	if listenBroadcastRequest.CancelListen {
-		err = h.globalContext.Broadcast().CancelListen(listenBroadcastRequest.Channel, conn)
+		err = h.globalContext.Broadcast().CancelListen(msys.GroupChannel(listenBroadcastRequest.Channel), conn)
 	} else {
-		err = h.globalContext.Broadcast().Listen(listenBroadcastRequest.Channel, conn)
+		err = h.globalContext.Broadcast().Listen(msys.GroupChannel(listenBroadcastRequest.Channel), conn)
 	}
 	if err != nil {
 		err.PrintStackTrace()

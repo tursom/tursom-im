@@ -13,11 +13,11 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"gopkg.in/yaml.v2"
 
-	"github.com/tursom-im/config"
-	ctx "github.com/tursom-im/context"
-	"github.com/tursom-im/exception"
-	_ "github.com/tursom-im/handler/request"
-	"github.com/tursom-im/handler/transport/web"
+	"github.com/tursom/tursom-im/config"
+	ctx "github.com/tursom/tursom-im/context"
+	"github.com/tursom/tursom-im/exception"
+	_ "github.com/tursom/tursom-im/handler/request"
+	"github.com/tursom/tursom-im/handler/transport/web"
 )
 
 func getConfig() *config.Config {

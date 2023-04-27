@@ -1,14 +1,17 @@
 package request
 
 import (
+	"strconv"
+
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
-	"github.com/tursom-im/conn"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	m "github.com/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/conn"
+	"github.com/tursom/tursom-im/context"
+	"github.com/tursom/tursom-im/handler"
+	m "github.com/tursom/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/proto/msys"
 )
 
 type sendBroadcastRequestHandler struct {
@@ -50,12 +53,12 @@ func (h *sendBroadcastRequestHandler) HandleMsg(c conn.Conn, msg *m.ImMsg, ctx u
 		}},
 	}
 
-	response.ReceiverCount = int32(h.globalContext.Broadcast().Send(
-		sendBroadcastRequest.Channel,
+	h.globalContext.Broadcast().Send(
+		uint32(msys.Channel_GROUP),
+		strconv.Itoa(int(sendBroadcastRequest.Channel)),
 		broadcast,
-		func(c1 conn.Conn) bool {
-			return !c.Equals(c1)
-		},
-	))
+	)
+	response.ReceiverCount = -1
+
 	return
 }

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option optimize_for = SPEED;
+
+// internal encode
+option go_package = "./ie";
+
+message KVStoreKey {
+  oneof content {
+    string system = 1;
+  }
+}

@@ -9,8 +9,8 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/exception"
-	"github.com/tursom-im/proto/msys"
+	"github.com/tursom/tursom-im/exception"
+	"github.com/tursom/tursom-im/proto/msys"
 )
 
 type TokenContext struct {

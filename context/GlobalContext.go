@@ -4,7 +4,7 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/config"
+	"github.com/tursom/tursom-im/config"
 )
 
 type GlobalContext struct {
@@ -99,14 +99,14 @@ func (g *GlobalContext) TokenContext() *TokenContext {
 	return g.tokenContext
 }
 
-func (g *GlobalContext) UserConn() *UserConnContext {
-	return g.UserConnContext()
-}
-
-func (g *GlobalContext) UserConnContext() *UserConnContext {
-	exceptions.CheckNil(g)
-	return g.userConnContext
-}
+//func (g *GlobalContext) UserConn() *UserConnContext {
+//	return g.UserConnContext()
+//}
+//
+//func (g *GlobalContext) UserConnContext() *UserConnContext {
+//	exceptions.CheckNil(g)
+//	return g.userConnContext
+//}
 
 func (g *GlobalContext) MsgId() *MsgIdContext {
 	return g.MsgIdContext()

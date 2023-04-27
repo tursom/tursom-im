@@ -8,7 +8,7 @@ import (
 	"github.com/tursom/GoCollections/lang/atomic"
 	unsafe2 "github.com/tursom/GoCollections/unsafe"
 
-	m "github.com/tursom-im/proto/msg"
+	m "github.com/tursom/tursom-im/proto/msg"
 )
 
 var attachmentKeyId = atomic.Int32(0)

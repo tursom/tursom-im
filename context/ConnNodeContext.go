@@ -7,7 +7,7 @@ import (
 	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/conn"
+	"github.com/tursom/tursom-im/conn"
 )
 
 // ConnNodeContext

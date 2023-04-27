@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/tursom-im/handler/transport/web"
+	"github.com/tursom/tursom-im/handler/transport/web"
 )
 
 func main() {

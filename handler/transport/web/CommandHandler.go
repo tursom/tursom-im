@@ -8,7 +8,7 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/context"
+	"github.com/tursom/tursom-im/context"
 )
 
 type CommandHandler struct {

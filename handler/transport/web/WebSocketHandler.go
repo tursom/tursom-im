@@ -18,12 +18,12 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/conn"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/exception"
-	"github.com/tursom-im/handler"
-	m "github.com/tursom-im/proto/msg"
-	"github.com/tursom-im/utils"
+	"github.com/tursom/tursom-im/context"
+	"github.com/tursom/tursom-im/exception"
+	"github.com/tursom/tursom-im/handler"
+	m "github.com/tursom/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/proto/msys"
+	"github.com/tursom/tursom-im/utils"
 )
 
 type (
@@ -204,8 +204,5 @@ func (h *Handler) handleSelfMsg(c *WebSocketConn, msg *m.ImMsg) {
 	exceptions.CheckNil(h)
 
 	sender := h.globalContext.Attr().UserId(c).Get().String()
-	currentConn := h.globalContext.UserConn().GetUserConn(sender)
-	currentConn.WriteChatMsg(msg, func(c conn.Conn) bool {
-		return c != c
-	})
+	h.globalContext.Broadcast().Send(uint32(msys.Channel_USER), sender, msg)
 }

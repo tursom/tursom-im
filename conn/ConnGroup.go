@@ -1,11 +1,12 @@
 package conn
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/tursom/GoCollections/concurrent"
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	m "github.com/tursom-im/proto/msg"
+	m "github.com/tursom/tursom-im/proto/msg"
 )
 
 type ConnGroup struct {
@@ -83,7 +84,7 @@ func (g *ConnGroup) WriteChatMsg(msg *m.ImMsg, filter func(Conn) bool) int {
 		if filter == nil || filter(conn) {
 			defer func() {
 				if exception := exceptions.PackageAny(recover()); exception != nil {
-
+					log.WithField("err", exception).Errorf("send group msg failed")
 				}
 			}()
 			conn.SendMsg(msg)

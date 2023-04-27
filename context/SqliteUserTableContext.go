@@ -7,14 +7,10 @@ import (
 	"github.com/tursom/GoCollections/exceptions"
 	"github.com/tursom/GoCollections/lang"
 
-	"github.com/tursom-im/exception"
+	"github.com/tursom/tursom-im/exception"
 )
 
 const (
-	tableUserCreate = `create table if not exists user(
-	id char(32) primary key not null,
-	token text
-)`
 	rowUserCreate = `insert into user (id,token) values (?,?)`
 	rowUserQuery  = `select id,token from user where id=?`
 )
@@ -42,11 +38,6 @@ func (s *SqliteUserTableContext) Init(ctx *GlobalContext) {
 
 func (s *SqliteUserTableContext) init(msgIdContext *MsgIdContext) {
 	s.msgIdContext = msgIdContext
-}
-
-func (s *SqliteUserTableContext) CreateTable() exceptions.Exception {
-	_, err := s.db.Exec(tableUserCreate)
-	return exceptions.Package(err)
 }
 
 func (s *SqliteUserTableContext) CreateUser() (*User, exceptions.Exception) {

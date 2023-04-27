@@ -5,10 +5,11 @@ import (
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
-	"github.com/tursom-im/conn"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	m "github.com/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/conn"
+	"github.com/tursom/tursom-im/context"
+	"github.com/tursom/tursom-im/handler"
+	m "github.com/tursom/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/proto/msys"
 )
 
 type sendMsgRequestHandler struct {
@@ -45,13 +46,6 @@ func (h *sendMsgRequestHandler) HandleMsg(c conn.Conn, msg *m.ImMsg, ctx util.Co
 	response.ReqId = sendMsgRequest.ReqId
 
 	receiver := sendMsgRequest.Receiver
-	receiverConn := h.globalContext.UserConn().GetUserConn(receiver)
-	currentConn := h.globalContext.UserConn().GetUserConn(sender)
-	if receiverConn == nil || currentConn == nil {
-		response.FailMsg = "user \"" + receiver + "\" not login"
-		response.FailType = m.FailType_TARGET_NOT_LOGIN
-		return
-	}
 
 	response.Success = true
 	imMsg := &m.ImMsg{
@@ -62,9 +56,9 @@ func (h *sendMsgRequestHandler) HandleMsg(c conn.Conn, msg *m.ImMsg, ctx util.Co
 			Content:  sendMsgRequest.Content,
 		}},
 	}
-	currentConn.Aggregation(receiverConn).WriteChatMsg(imMsg, func(c conn.Conn) bool {
-		return c != c
-	})
+
+	h.globalContext.Broadcast().Send(uint32(msys.Channel_USER), sender, imMsg)
+	h.globalContext.Broadcast().Send(uint32(msys.Channel_USER), receiver, imMsg)
 
 	return
 }

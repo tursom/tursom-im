@@ -5,10 +5,10 @@ import (
 	"github.com/tursom/GoCollections/lang"
 	"github.com/tursom/GoCollections/util"
 
-	"github.com/tursom-im/conn"
-	"github.com/tursom-im/context"
-	"github.com/tursom-im/handler"
-	m "github.com/tursom-im/proto/msg"
+	"github.com/tursom/tursom-im/conn"
+	"github.com/tursom/tursom-im/context"
+	"github.com/tursom/tursom-im/handler"
+	m "github.com/tursom/tursom-im/proto/msg"
 )
 
 type allocateNodeRequestHandler struct {
